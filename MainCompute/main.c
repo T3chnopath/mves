@@ -1,5 +1,6 @@
 #include "bsp_main_compute.h"
 #include "tx_api.h"
+#include "mcan.h"
 #include <stdbool.h>
 
 #define THREAD_STACK_SIZE 1024

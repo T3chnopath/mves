@@ -1,5 +1,5 @@
 rm -rf build
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Debug -DTARGET=$1 -DSUBTREE=TRUE ..
+cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TARGET=$1 -DSUBTREE=TRUE ..
 make
