@@ -9,5 +9,11 @@ set(CMAKE_ASM_COMPILER arm-none-eabi-gcc)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+if(${TARGET} STREQUAL "Camera")
+    set(MCU "STM32H563")
+else()
+    set(MCU "STM32H503")
+endif()
+
 add_subdirectory(manticore)
-add_subdirectory(MainCompute)
+add_subdirectory(${TARGET})
