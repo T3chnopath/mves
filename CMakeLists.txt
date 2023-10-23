@@ -11,10 +11,10 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if(BUILD_TARGET STREQUAL "Camera")
     set(MCU "STM32H563")
-elseif(BUILD_TARGET STREQUAL "MainCompute")
-    set(MCU "STM32H503")
+elseif(BUILD_TARGET STREQUAL "Deployment")
+    set(MCU "STM32H563")
 else()
-   message(FATAL_ERROR "No target specified! Use ./scripts/build.sh MainCompute | .. ")
+   message(FATAL_ERROR "No target specified! Use ./scripts/build.sh Deployment | .. ")
 endif()
 
 add_subdirectory(manticore)
