@@ -1,4 +1,5 @@
 #include "bsp_deployment.h"
+#include "utility.h"
 
 static void _BSP_SystemClockConfig(void);
 static inline void _BSP_PeriphInit(void);
@@ -32,7 +33,7 @@ static void _BSP_SystemClockConfig(void)
     RCC_OscInitStruct.HSI48State     = RCC_HSI48_ON;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource  = RCC_PLL1_SOURCE_HSE;
-    RCC_OscInitStruct.PLL.PLLM = 4;
+    RCC_OscInitStruct.PLL.PLLM = 12;
     RCC_OscInitStruct.PLL.PLLN = 250;
     RCC_OscInitStruct.PLL.PLLP = 2;
     RCC_OscInitStruct.PLL.PLLQ = 2;
@@ -72,18 +73,27 @@ static void _BSP_GPIO_Init(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    // GPIO Ports Clock Enable
-    LED_GREEN_PORT_CLK_EN();
-
-    // Configure GPIO pin Output Level
-    HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
-
-    // Configure GPIO pin : LED1_GREEN_Pin
-    GPIO_InitStruct.Pin = LED_GREEN_Pin;
+    GPIO_PortClkEnable(LED_RED_GPIO_Port);
+    HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+    GPIO_InitStruct.Pin = LED_RED_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(LED_RED_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_PortClkEnable(LED_GREEN_GPIO_Port);
+    HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+    GPIO_InitStruct.Pin = LED_GREEN_Pin;
     HAL_GPIO_Init(LED_GREEN_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_PortClkEnable(LED_BLUE_GPIO_Port);
+    HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
+    GPIO_InitStruct.Pin = LED_BLUE_Pin;
+
+    GPIO_PortClkEnable(FDCAN_STDBY_GPIO_Port);
+    HAL_GPIO_WritePin(FDCAN_STDBY_GPIO_Port, FDCAN_STDBY_Pin, GPIO_PIN_RESET);
+    GPIO_InitStruct.Pin = FDCAN_STDBY_Pin;
+    HAL_GPIO_Init(FDCAN_STDBY_GPIO_Port, &GPIO_InitStruct);
 }
 
 static void _BSP_FDCAN_Init(void)
@@ -95,9 +105,9 @@ static void _BSP_FDCAN_Init(void)
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
     PeriphClkInitStruct.PLL2.PLL2Source = RCC_PLL2_SOURCE_HSE;
     PeriphClkInitStruct.PLL2.PLL2M = 2;
-    PeriphClkInitStruct.PLL2.PLL2N = 32;
+    PeriphClkInitStruct.PLL2.PLL2N = 16;
     PeriphClkInitStruct.PLL2.PLL2P = 2;
-    PeriphClkInitStruct.PLL2.PLL2Q = 4;
+    PeriphClkInitStruct.PLL2.PLL2Q = 6;
     PeriphClkInitStruct.PLL2.PLL2R = 2;
     PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2_VCIRANGE_3;
     PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2_VCORANGE_WIDE;
@@ -112,8 +122,10 @@ static void _BSP_FDCAN_Init(void)
 
     // Peripheral Clock Enable 
     __HAL_RCC_FDCAN_CLK_ENABLE();
-    FDCAN_RX_PORT_CLK_EN();
-    FDCAN_TX_PORT_CLK_EN();
+    // GPIO_PortClkEnable(FDCAN_TX_Port);
+    // GPIO_PortClkEnable(FDCAN_RX_Port);
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+
 
     // FDCAN GPIO Configuration
     GPIO_InitStruct.Pin = FDCAN_TX_Pin | FDCAN_RX_Pin;
@@ -122,22 +134,17 @@ static void _BSP_FDCAN_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 
     // Select alternate function based on FDCAN interface
-#ifdef FDCAN1_EN
+#if defined(FDCAN1_EN)
     GPIO_InitStruct.Alternate = GPIO_AF9_FDCAN1;
-#elif FDCAN2_EN 
-    GPIO_InitStruct.Alternate = GPIO_AF9_FDCAN2;
 #endif
 
     HAL_GPIO_Init(FDCAN_TX_Port, &GPIO_InitStruct);
     HAL_GPIO_Init(FDCAN_RX_Port, &GPIO_InitStruct);
 
     // Interrupt init, default to IT0, preempt = 2, subpriority = 0 
-#ifdef FDCAN1_EN  
+#if defined(FDCAN1_EN)
     HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, 2, 0);
     HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
-#elif FDCAN2_EN
-    HAL_NVIC_SetPriority(FDCAN2_IT0_IRQn, 2, 0);
-    HAL_NVIC_EnableIRQ(FDCAN2_IT0_IRQn);
 #endif 
 }
 

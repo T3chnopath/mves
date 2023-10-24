@@ -43,7 +43,6 @@ void thread_main(ULONG ctx)
 {
     MCAN_SetEnableIT(MCAN_ENABLE);
     bool heartbeatFlagPrevious = false;
-
     while( true )
     {
         HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
