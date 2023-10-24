@@ -13,25 +13,44 @@
 #define FDCAN1_EN
 
 // Pin Definitions
-#define LED_RED_Pin           GPIO_PIN_5
-#define LED_RED_GPIO_Port     GPIOB
+#define LED_RED_Pin GPIO_PIN_5
+#define LED_RED_GPIO_Port GPIOB
 
-#define LED_GREEN_Pin           GPIO_PIN_6
-#define LED_GREEN_GPIO_Port     GPIOB
+#define LED_GREEN_Pin GPIO_PIN_6
+#define LED_GREEN_GPIO_Port GPIOB
 
-#define LED_BLUE_Pin           GPIO_PIN_7
-#define LED_BLUE_GPIO_Port     GPIOB
+#define LED_BLUE_Pin GPIO_PIN_7
+#define LED_BLUE_GPIO_Port GPIOB
 
-#define FDCAN_STDBY_Pin            GPIO_PIN_13
-#define FDCAN_STDBY_GPIO_Port      GPIOC
+#define FDCAN_STDBY_Pin GPIO_PIN_13
+#define FDCAN_STDBY_GPIO_Port GPIOC
 
-
-#ifdef  FDCAN1_EN  
-#define FDCAN_TX_Port           GPIOB
-#define FDCAN_TX_Pin            GPIO_PIN_10
-#define FDCAN_RX_Port           GPIOB
-#define FDCAN_RX_Pin            GPIO_PIN_12
+#ifdef FDCAN1_EN
+#define FDCAN_TX_Port GPIOB
+#define FDCAN_TX_Pin GPIO_PIN_10
+#define FDCAN_RX_Port GPIOB
+#define FDCAN_RX_Pin GPIO_PIN_12
 #endif
+
+// Motor Definitions
+extern TIM_HandleTypeDef hBayDC_Tim;
+extern TIM_HandleTypeDef hArmDC_Tim;
+
+#define BAY_DC_TIM      TIM1
+#define BAY_DC_PERIOD   (25000 - 1)
+#define BAY_DC_Pin1     GPIO_PIN_9
+#define BAY_DC_Port1    GPIOA
+#define BAY_DC_Pin2     GPIO_PIN_10
+#define BAY_DC_Port2    GPIOA
+
+#define ARM_DC_TIM      TIM3
+#define ARM_DC_PERIOD   (25000 - 1)
+#define ARM_DC_Pin1     GPIO_PIN_11
+#define ARM_DC_Port1    GPIOA
+#define ARM_DC_Pin2     GPIO_PIN_12
+#define ARM_DC_Port2    GPIOA
+
+// Actuator PC7;
 
 // Public Functions
 void BSP_Init(void);

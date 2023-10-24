@@ -1,7 +1,7 @@
 #include "bsp_deployment.h"
 #include "tx_api.h"
 #include "mcan.h"
-
+#include "dc_motor.h"
 
 // Main Thread
 #define THREAD_MAIN_STACK_SIZE 512
@@ -43,11 +43,39 @@ void thread_main(ULONG ctx)
 {
     MCAN_SetEnableIT(MCAN_ENABLE);
     bool heartbeatFlagPrevious = false;
+
+    DCMotor_Config_t dcConfig;
+    DCMotor_Instance_t armMotor;
+
+    //DC Motor Initialization
+    dcConfig.Min_Speed = 0;
+    dcConfig.Max_Speed = 100;
+
+    armMotor.DC_Timer    = &hArmDC_Tim;
+    armMotor.IN1_Channel = TIM_CHANNEL_3;
+    armMotor.IN2_Channel = TIM_CHANNEL_4;
+    armMotor.config      = &dcConfig;
+
+    if(DCMotor_Init(&armMotor) != DC_MOTOR_OK){
+        while(1);
+    }
+
     while( true )
     {
+                
         HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
-        tx_thread_sleep(1000);
         
+        Stop_DCMotor(&armMotor);
+        tx_thread_sleep(1000);
+
+        Drive_DCMotor(&armMotor, 100, CLOCKWISE);
+        tx_thread_sleep(1000);
+
+        Drive_DCMotor(&armMotor, 100, COUNTER_CLOCKWISE);
+        tx_thread_sleep(1000);
+
+
+
         // If MCAN_Rx, update the heart beat enable or disable
         if ( heartbeatFlagPrevious != heartbeatFlag)
         {
