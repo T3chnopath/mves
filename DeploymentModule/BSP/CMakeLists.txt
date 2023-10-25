@@ -3,7 +3,7 @@ add_library(BSP
     bsp_deployment.c
 )
 
-target_link_libraries(BSP Common MCU_Support)
+target_link_libraries(BSP Common threadx)
 
 # Include header
 target_include_directories(BSP PUBLIC
