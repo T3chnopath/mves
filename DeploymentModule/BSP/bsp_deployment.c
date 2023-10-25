@@ -8,6 +8,7 @@ static void _BSP_FDCAN_Init(void);
 static void _BSP_BAY_DC_Init(void);
 static void _BSP_ARM_DC_Init(void);
 static void _BSP_ACT_Init(void);
+static void _BSP_LS_Init(void);
 
 TIM_HandleTypeDef hBayDC_Tim;
 TIM_HandleTypeDef hArmDC_Tim;
@@ -24,6 +25,8 @@ void BSP_Init(void)
     _BSP_BAY_DC_Init();
     _BSP_ARM_DC_Init();
     _BSP_ACT_Init();
+
+    _BSP_LS_Init();
 }
 
 static void _BSP_SystemClockConfig(void)
@@ -298,6 +301,26 @@ static void _BSP_ACT_Init(void){
     GPIO_InitStruct.Alternate = GPIO_AF2_TIM3;
     HAL_GPIO_Init(ACT_Port, &GPIO_InitStruct);
 
+}
+
+static void _BSP_LS_Init(void){
+
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  GPIO_PortClkEnable(ARM_LS_RETRACT_Port);
+  GPIO_PortClkEnable(ARM_LS_DEPLOY_Port);
+
+  GPIO_InitStruct.Pin = ARM_LS_DEPLOY_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(ARM_LS_DEPLOY_Port, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = ARM_LS_RETRACT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(ARM_LS_DEPLOY_Port, &GPIO_InitStruct);
 }
 
 

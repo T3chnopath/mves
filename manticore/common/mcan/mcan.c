@@ -386,8 +386,8 @@ void MCAN_EnableHeartBeats( uint32_t delay, uint8_t* heartbeatData )
                     0, 
                     auThreadHeartbeatStack, 
                     THREAD_HEARTBEAT_STACK_SIZE, 
-                    6,
-                    6, 
+                    2,
+                    2, 
                     0, // Time slicing unused if all threads have unique priorities     
                     TX_DONT_START); 
         heartBeatThreadCreated = true;

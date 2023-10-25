@@ -3,7 +3,7 @@ add_library(Deployment
     deployment.c
 )
 
-target_link_libraries(Deployment Common threadx)
+target_link_libraries(Deployment BSP Common threadx)
 
 # Include header
 target_include_directories(Deployment PUBLIC
