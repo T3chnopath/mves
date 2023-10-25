@@ -72,8 +72,6 @@ typedef struct
 	uint16_t Max_Cnt;                     
 } Actuator_Instance_t;
 
-
-
 //Servo Functions
 Servo_Error Servo_Init(Servo_Instance_t* servo);
 Servo_Error Drive_Servo(const Servo_Instance_t* servo, const int8_t angle);

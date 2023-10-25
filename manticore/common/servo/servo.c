@@ -1,6 +1,6 @@
 #include "servo.h"
 #include <stddef.h>
-
+#include "utility.h"
 
 static char servoFreqError      = 0;
 static char actFreqError        = 0;

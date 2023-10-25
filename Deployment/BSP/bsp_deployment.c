@@ -7,10 +7,11 @@ static void _BSP_GPIO_Init(void);
 static void _BSP_FDCAN_Init(void);
 static void _BSP_BAY_DC_Init(void);
 static void _BSP_ARM_DC_Init(void);
+static void _BSP_ACT_Init(void);
 
 TIM_HandleTypeDef hBayDC_Tim;
 TIM_HandleTypeDef hArmDC_Tim;
-
+TIM_HandleTypeDef hACT_Tim;
 
 void BSP_Init(void)
 {
@@ -22,6 +23,7 @@ void BSP_Init(void)
     
     _BSP_BAY_DC_Init();
     _BSP_ARM_DC_Init();
+    _BSP_ACT_Init();
 }
 
 static void _BSP_SystemClockConfig(void)
@@ -155,67 +157,149 @@ static void _BSP_FDCAN_Init(void)
 
 static void _BSP_BAY_DC_Init(void)
 {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    GPIO_PortClkEnable(BAY_DC_Port1);
+    GPIO_PortClkEnable(BAY_DC_Port2);
+
+    // Pin Configurations 
+    GPIO_InitStruct.Pin = BAY_DC_Pin1 | BAY_DC_Pin2;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(BAY_DC_Port1, &GPIO_InitStruct);
+    HAL_GPIO_Init(BAY_DC_Port2, &GPIO_InitStruct);
 
 }
 
 static void _BSP_ARM_DC_Init(void)
 {
+
+    // __HAL_RCC_TIM3_CLK_ENABLE();
+
     // PWM Configurations
-    TIM_MasterConfigTypeDef sMasterConfig = {0};
-    TIM_OC_InitTypeDef sConfigOC = {0};
+    // TIM_MasterConfigTypeDef sMasterConfig = {0};
+    // TIM_OC_InitTypeDef sConfigOC = {0};
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    hArmDC_Tim.Instance = ARM_DC_TIM;
-    hArmDC_Tim.Init.Prescaler = 0;
-    hArmDC_Tim.Init.CounterMode = TIM_COUNTERMODE_UP;
-    hArmDC_Tim.Init.Period = ARM_DC_PERIOD;
-    hArmDC_Tim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    hArmDC_Tim.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_PWM_Init(&hArmDC_Tim) != HAL_OK)
-    {
-        _BSP_ErrorHandler;
-    }
-    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    if (HAL_TIMEx_MasterConfigSynchronization(&hArmDC_Tim, &sMasterConfig) != HAL_OK)
-    {
-        _BSP_ErrorHandler;
-    }
-    sConfigOC.OCMode = TIM_OCMODE_PWM1;
-    sConfigOC.Pulse = 0;
-    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-    if (HAL_TIM_PWM_ConfigChannel(&hArmDC_Tim, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-    {
-        _BSP_ErrorHandler;
-    }
-    if (HAL_TIM_PWM_ConfigChannel(&hArmDC_Tim, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-    {
-        _BSP_ErrorHandler;
-    }
-    if (HAL_TIM_PWM_ConfigChannel(&hArmDC_Tim, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-    {
-        _BSP_ErrorHandler;
-    }
-    if (HAL_TIM_PWM_ConfigChannel(&hArmDC_Tim, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
-    {
-        _BSP_ErrorHandler;
-    }
+    // hArmDC_Tim.Instance = ARM_DC_TIM;
+    // hArmDC_Tim.Init.Prescaler = 0;
+    // hArmDC_Tim.Init.CounterMode = TIM_COUNTERMODE_UP;
+    // hArmDC_Tim.Init.Period = 25000-1;
+    // hArmDC_Tim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    // hArmDC_Tim.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    // if (HAL_TIM_PWM_Init(&hArmDC_Tim) != HAL_OK)
+    // {
+    //     _BSP_ErrorHandler;
+    // }
+    // sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    // sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    // if (HAL_TIMEx_MasterConfigSynchronization(&hArmDC_Tim, &sMasterConfig) != HAL_OK)
+    // {
+    //     _BSP_ErrorHandler;
+    // }
+    // sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    // sConfigOC.Pulse = 0;
+    // sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    // sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    // if (HAL_TIM_PWM_ConfigChannel(&hArmDC_Tim, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+    // {
+    //     _BSP_ErrorHandler;
+    // }
+    // if (HAL_TIM_PWM_ConfigChannel(&hArmDC_Tim, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+    // {
+    //     _BSP_ErrorHandler;
+    // }
+    // if (HAL_TIM_PWM_ConfigChannel(&hArmDC_Tim, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+    // {
+    //     _BSP_ErrorHandler;
+    // }
+    // if (HAL_TIM_PWM_ConfigChannel(&hArmDC_Tim, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+    // {
+    //     _BSP_ErrorHandler;
+    // }
 
-    __HAL_RCC_TIM3_CLK_ENABLE();
 
     GPIO_PortClkEnable(ARM_DC_Port1);
     GPIO_PortClkEnable(ARM_DC_Port1);
 
     // Pin Configurations 
+    // GPIO_InitStruct.Pin = ARM_DC_Pin1 | ARM_DC_Pin2;
+    // GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    // GPIO_InitStruct.Pull = GPIO_NOPULL;
+    // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    // GPIO_InitStruct.Alternate = GPIO_AF2_TIM3;
+    // HAL_GPIO_Init(ARM_DC_Port1, &GPIO_InitStruct);
+    // HAL_GPIO_Init(ARM_DC_Port2, &GPIO_InitStruct);
+
     GPIO_InitStruct.Pin = ARM_DC_Pin1 | ARM_DC_Pin2;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(ARM_DC_Port1, &GPIO_InitStruct);
+    HAL_GPIO_Init(ARM_DC_Port2, &GPIO_InitStruct);
+
+}
+
+static void _BSP_ACT_Init(void){
+
+    // Timer Configuration
+    __HAL_RCC_TIM3_CLK_ENABLE();    
+
+    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+    TIM_OC_InitTypeDef sConfigOC = {0};
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    /* USER CODE BEGIN TIM3_Init 1 */
+
+    /* USER CODE END TIM3_Init 1 */
+    hACT_Tim.Instance = ACT_TIM;
+    hACT_Tim.Init.Prescaler = ACT_PRESCALER;
+    hACT_Tim.Init.CounterMode = TIM_COUNTERMODE_UP;
+    hACT_Tim.Init.Period = ACT_PERIOD;
+    hACT_Tim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    hACT_Tim.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&hACT_Tim) != HAL_OK)
+    {
+      _BSP_ErrorHandler;
+    }
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    if (HAL_TIM_ConfigClockSource(&hACT_Tim, &sClockSourceConfig) != HAL_OK)
+    {
+      _BSP_ErrorHandler;
+    }
+    if (HAL_TIM_PWM_Init(&hACT_Tim) != HAL_OK)
+    {
+      _BSP_ErrorHandler;
+    }
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if (HAL_TIMEx_MasterConfigSynchronization(&hACT_Tim, &sMasterConfig) != HAL_OK)
+    {
+      _BSP_ErrorHandler;
+    }
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = 0;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    if (HAL_TIM_PWM_ConfigChannel(&hACT_Tim, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+    {
+      _BSP_ErrorHandler;
+    }
+
+    // Pin Configuration
+    GPIO_PortClkEnable(ACT_Port);
+
+    GPIO_InitStruct.Pin = ACT_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF2_TIM3;
-    HAL_GPIO_Init(ARM_DC_Port1, &GPIO_InitStruct);
-    HAL_GPIO_Init(ARM_DC_Port2, &GPIO_InitStruct);
+    HAL_GPIO_Init(ACT_Port, &GPIO_InitStruct);
+
 }
+
 
 static void _BSP_ErrorHandler(void)
 {

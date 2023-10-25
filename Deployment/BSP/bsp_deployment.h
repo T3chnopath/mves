@@ -35,20 +35,28 @@
 // Motor Definitions
 extern TIM_HandleTypeDef hBayDC_Tim;
 extern TIM_HandleTypeDef hArmDC_Tim;
+extern TIM_HandleTypeDef hACT_Tim;
 
-#define BAY_DC_TIM      TIM1
+// #define BAY_DC_TIM      TIM1
 #define BAY_DC_PERIOD   (25000 - 1)
 #define BAY_DC_Pin1     GPIO_PIN_9
 #define BAY_DC_Port1    GPIOA
 #define BAY_DC_Pin2     GPIO_PIN_10
 #define BAY_DC_Port2    GPIOA
 
-#define ARM_DC_TIM      TIM3
+// #define ARM_DC_TIM      TIM3
 #define ARM_DC_PERIOD   (25000 - 1)
 #define ARM_DC_Pin1     GPIO_PIN_11
 #define ARM_DC_Port1    GPIOA
 #define ARM_DC_Pin2     GPIO_PIN_12
 #define ARM_DC_Port2    GPIOA
+
+// Actuator Definition
+#define ACT_TIM         TIM3
+#define ACT_PRESCALER   (125 - 1)
+#define ACT_PERIOD      (40000 - 1)
+#define ACT_Port        GPIOC
+#define ACT_Pin         GPIO_PIN_7
 
 // Actuator PC7;
 

@@ -2,6 +2,7 @@
 #include "tx_api.h"
 #include "mcan.h"
 #include "dc_motor.h"
+#include "servo.c"
 
 // Main Thread
 #define THREAD_MAIN_STACK_SIZE 512
@@ -44,19 +45,38 @@ void thread_main(ULONG ctx)
     MCAN_SetEnableIT(MCAN_ENABLE);
     bool heartbeatFlagPrevious = false;
 
-    DCMotor_Config_t dcConfig;
-    DCMotor_Instance_t armMotor;
+    // DCMotor_Config_t dcConfig;
+    // DCMotor_Instance_t armMotor;
 
     //DC Motor Initialization
-    dcConfig.Min_Speed = 0;
-    dcConfig.Max_Speed = 100;
+    // dcConfig.Min_Speed = 0;
+    // dcConfig.Max_Speed = 100;
 
-    armMotor.DC_Timer    = &hArmDC_Tim;
-    armMotor.IN1_Channel = TIM_CHANNEL_3;
-    armMotor.IN2_Channel = TIM_CHANNEL_4;
-    armMotor.config      = &dcConfig;
+    // armMotor.DC_Timer    = &hArmDC_Tim;
+    // armMotor.IN1_Channel = TIM_CHANNEL_2;
+    // armMotor.IN2_Channel = TIM_CHANNEL_4;
+    // armMotor.config      = &dcConfig;
 
-    if(DCMotor_Init(&armMotor) != DC_MOTOR_OK){
+    // if(DCMotor_Init(&armMotor) != DC_MOTOR_OK){
+    //     while(1);
+    // }
+
+    Actuator_Config_t actConfig;
+    Actuator_Instance_t actInstance;
+
+    actConfig.Min_Pulse           = 900;
+    actConfig.Max_Pulse           = 2100;
+    actConfig.Min_Length          = 0;
+    actConfig.Max_Length          = 27;
+    actConfig.Desired_Min_Length  = 0;
+    actConfig.Desired_Max_Length  = 16;
+
+    actInstance.Act_Timer   = &hACT_Tim;
+    actInstance.Channel     = TIM_CHANNEL_2;
+    actInstance.config      = &actConfig;
+
+    if(Actuator_Init(&actInstance) != ACTUATOR_OK){
+        //HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
         while(1);
     }
 
@@ -65,15 +85,20 @@ void thread_main(ULONG ctx)
                 
         HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
         
-        Stop_DCMotor(&armMotor);
-        tx_thread_sleep(1000);
+        // HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, 0);
+        // HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, 1);
 
-        Drive_DCMotor(&armMotor, 100, CLOCKWISE);
-        tx_thread_sleep(1000);
+        // HAL_GPIO_WritePin(BAY_DC_Port1, BAY_DC_Pin1, 0);
+        // HAL_GPIO_WritePin(BAY_DC_Port2, BAY_DC_Pin2, 1);
 
-        Drive_DCMotor(&armMotor, 100, COUNTER_CLOCKWISE);
-        tx_thread_sleep(1000);
+        Drive_Actuator(&actInstance, 0);
+        tx_thread_sleep(3000);
 
+        Drive_Actuator(&actInstance, 16);
+        tx_thread_sleep(3000);
+
+        Drive_Actuator(&actInstance, 25);
+        tx_thread_sleep(3000);
 
 
         // If MCAN_Rx, update the heart beat enable or disable

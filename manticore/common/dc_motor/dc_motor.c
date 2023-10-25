@@ -19,8 +19,8 @@
 
 // #define STM32F446
 
-static int32_t currEncodeCnt    = 0;
-static int16_t currAngle        = 0;
+static uint32_t currEncodeCnt    = 0;
+static int16_t currAngle         = 0;
 
 //DC Motor Functions
 DCMotor_Error DCMotor_Init(DCMotor_Instance_t* dcMotor){
