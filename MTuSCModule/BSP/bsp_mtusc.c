@@ -208,7 +208,61 @@ static void _BSP_I2C_Init(void){
 }
 
 static void _BSP_UART_Init(void){
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};    
 
+  /* UART4 clock enable */
+  __HAL_RCC_UART4_CLK_ENABLE();
+
+  MTuSC_UART.Instance = UART4;
+  MTuSC_UART.Init.BaudRate = XBEE_UART_BAUDRATE;
+  MTuSC_UART.Init.WordLength = UART_WORDLENGTH_8B;
+  MTuSC_UART.Init.StopBits = UART_STOPBITS_1;
+  MTuSC_UART.Init.Parity = UART_PARITY_NONE;
+  MTuSC_UART.Init.Mode = UART_MODE_TX_RX;
+  MTuSC_UART.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  MTuSC_UART.Init.OverSampling = UART_OVERSAMPLING_16;
+  MTuSC_UART.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  MTuSC_UART.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  MTuSC_UART.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&MTuSC_UART) != HAL_OK)
+  {
+    _BSP_ErrorHandler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&MTuSC_UART, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    _BSP_ErrorHandler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&MTuSC_UART, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    _BSP_ErrorHandler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&MTuSC_UART) != HAL_OK)
+  {
+    _BSP_ErrorHandler();
+  }
+
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_UART4;
+  PeriphClkInitStruct.Uart4ClockSelection = RCC_UART4CLKSOURCE_PCLK1;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    _BSP_ErrorHandler();
+  }
+
+  //Enable GPIOA Clock
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /**UART4 GPIO Configuration
+  PA0     ------> UART4_TX
+  PA1     ------> UART4_RX
+  */
+  GPIO_InitStruct.Pin = XBEE_UART_TX_Pin|XBEE_UART_RX_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
+  HAL_GPIO_Init(XBEE_UART_TX_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(XBEE_UART_TX_Port, &GPIO_InitStruct);
 }
 
 static void _BSP_ErrorHandler(void)

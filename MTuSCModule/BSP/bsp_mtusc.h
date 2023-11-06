@@ -41,9 +41,9 @@
 #define I2C_SCL_Pin     GPIO_PIN_6
 
 // XBEE UART
-#define XBEE_UART_TX_Port   GPIO_A
+#define XBEE_UART_TX_Port   GPIOA
 #define XBEE_UART_TX_Pin    GPIO_PIN_0
-#define XBEE_UART_RX_Port   GPIO_A
+#define XBEE_UART_RX_Port   GPIOA
 #define XBEE_UART_RX_Pin    GPIO_PIN_1
 #define XBEE_UART_BAUDRATE  921600
 
