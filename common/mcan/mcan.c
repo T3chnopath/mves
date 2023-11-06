@@ -88,8 +88,8 @@ static bool _MCAN_ConfigInterface( FDCAN_GlobalTypeDef* FDCAN_Instance )
     _hfdcan.Init.StdFiltersNbr = 0;
     _hfdcan.Init.ExtFiltersNbr = MCAN_MAX_FILTERS;
     _hfdcan.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
-
-    if (HAL_FDCAN_Init(&_hfdcan) != HAL_OK)
+ 
+ if (HAL_FDCAN_Init(&_hfdcan) != HAL_OK)
     {
         return false;
     }
