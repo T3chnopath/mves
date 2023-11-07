@@ -118,7 +118,6 @@ void thread_main(ULONG ctx)
                 {
                     command = IDLE;
                 }
-
                 break;
 
             case ARM_STOP:
