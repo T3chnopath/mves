@@ -18,13 +18,8 @@ void thread_main(ULONG ctx);
 
 int main(void)
 {
-    /* Initialize BSP */
-    BSP_Init();
-
-    MCAN_Init( FDCAN1, DEV_MAIN_COMPUTE, &mcanRxMessage );
-
     tx_kernel_enter();
-   }
+}
 
 void tx_application_define(void *first_unused_memory)
 {
@@ -43,9 +38,12 @@ void tx_application_define(void *first_unused_memory)
 
 void thread_main(ULONG ctx)
 {
-    MCAN_SetEnableIT(MCAN_ENABLE);
-    DeploymentInit();
+    BSP_Init();
 
+    MCAN_Init( FDCAN1, DEV_MAIN_COMPUTE, &mcanRxMessage );
+    MCAN_SetEnableIT(MCAN_ENABLE);
+
+    DeploymentInit();
 
     while(true)
     {
