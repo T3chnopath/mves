@@ -1,6 +1,6 @@
 add_subdirectory(IT_Handler)
 add_subdirectory(BSP)
-add_subdirectory(Deployment)
+add_subdirectory(MainCompute)
 
 add_executable(${BUILD_TARGET}.elf
     main.c
@@ -21,5 +21,5 @@ target_link_libraries(${BUILD_TARGET}.elf
     Common
     IT_Handler
     BSP
-    Deployment
+    MainCompute
 )

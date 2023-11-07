@@ -1,6 +1,6 @@
 # Create BSP Library
 add_library(BSP
-    bsp_deployment.c
+    bsp_maincompute.c
 )
 
 target_link_libraries(BSP Common threadx)
