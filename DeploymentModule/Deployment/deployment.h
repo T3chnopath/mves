@@ -14,7 +14,9 @@ typedef enum
     BAY_CCW,
     BAY_STOP,
     ARM_DEPLOY,
+    LS_DEPLOY,
     ARM_RETRACT,
+    LS_RETRACT,
     ARM_STOP,
     EMERGENCY_STOP
 } DEPLOY_COMM;

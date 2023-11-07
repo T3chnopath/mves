@@ -96,15 +96,32 @@ void thread_main(ULONG ctx)
 
             case ARM_DEPLOY:
                 ArmDeploy();
-                command = IDLE;
+                command = LS_DEPLOY;
+                break;
+
+            case LS_DEPLOY:
+                // Poll and handle the arm deployment LS
+                if(LS_DEPLOY());
+                {
+                    command = IDLE;
+                }
                 break;
 
             case ARM_RETRACT:
                 ArmRetract();
-                command = IDLE;
+                command = LS_RETRACT;
                 break;
-            
-           case ARM_STOP:
+
+            case LS_RETRACT:
+                // Poll and handle the arm retract LS 
+                if(LS_RETRACT())
+                {
+                    command = IDLE;
+                }
+
+                break;
+
+            case ARM_STOP:
                 ArmStop();
                 command = IDLE;
                 break;

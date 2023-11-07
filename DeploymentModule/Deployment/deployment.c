@@ -81,7 +81,21 @@ bool ArmDeploy(void)
     return true;
 }
 
-bool ArmRetract(void )
+bool LS_Deploy(void)
+{
+    if(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Pin, ARM_LS_DEPLOY_Pin))
+    {
+        ArmRetract();
+        while(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin));
+        ArmStop(); 
+
+        return true;
+    }
+
+    return false;
+}
+
+bool ArmRetract(void)
 {
 #if defined(ARM_DC_FLIP)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, RESET);
@@ -92,6 +106,20 @@ bool ArmRetract(void )
 #endif
 
     return true;
+}
+
+bool LS_Retract(void)
+{
+    if(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin))
+    {
+        ArmDeploy();
+        while(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin));
+        ArmStop();
+
+        return true;
+    }
+
+    return false;
 }
 
 void ArmStop(void)
