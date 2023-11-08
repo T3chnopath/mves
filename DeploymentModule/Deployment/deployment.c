@@ -113,12 +113,20 @@ void BayStop(void)
 bool BayOrient(void)
 {
     // if bay is not oriented, stay in bay orient 
+    BayCCW();
+    tx_thread_sleep(5000);
     return true;
 }
 
 // Arm Commands
 bool ArmDeploy(void)
 {
+    // return true if limit switch pressed
+    if(_LS_Deploy())
+    {
+        return true;
+    }
+
 #if defined(ARM_DC_FLIP)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, SET);
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, RESET);
@@ -126,17 +134,18 @@ bool ArmDeploy(void)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, RESET);
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, SET);
 #endif
-
-    // return true if limit switch pressed
-    if(_LS_Deploy())
-    {
-        return true;
-    }
+    
     return false;
 }
 
 bool ArmRetract(void)
 {
+    // return true if limit switch pressed
+    if(_LS_Retract())
+    {
+        return true;
+    }
+
 #if defined(ARM_DC_FLIP)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, RESET);
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, SET);
@@ -145,12 +154,6 @@ bool ArmRetract(void)
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, RESET);
 #endif
     
-    // return true if limit switch pressed
-    if(_LS_Retract())
-    {
-        return true;
-    }
-
     return false;
 }
 
@@ -162,14 +165,10 @@ void ArmStop(void)
 
 bool ArmOrient(void)
 {
-    // return true if arm oriented
+    // TEMP: just deploy the arm relying on limit switches
+    while(!ArmDeploy());
+    
     return true;
-}
-
-void EmergencyStop(void)
-{
-    ArmStop();
-    BayStop();
 }
 
 // return true if moving to next command state

@@ -27,11 +27,11 @@ typedef enum
 
 typedef enum
 {
-    FULL_DEPLOYMENT,
-    FULL_RETRACTION,
-    EMERGENCY_STOP,
-    IDLE_PROC,
-} DEPLOY_PROCESS;
+    ESTOP,
+    FULL_DEPLOY,
+    FULL_RETRACT,
+    IDLE_THREAD,
+} DEPLOY_THREAD;
 
 bool DeploymentInit(void);
 void DirtbrakeDeploy(void);
@@ -46,8 +46,6 @@ bool ArmDeploy(void);
 bool ArmRetract(void);
 void ArmStop(void);
 bool ArmOrient(void);
-
-void EmergencyStop(void);
 
 bool DeployCommExe(DEPLOY_COMM deployComm);
 
