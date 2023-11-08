@@ -14,6 +14,12 @@ static sMCAN_Message mcanRxMessage = { 0 };
 static uint8_t heartbeatData[] = { 0xDE, 0xCA, 0XF, 0xC0, 0xFF, 0xEE, 0xCA, 0xFE};
 static volatile DEPLOY_COMM command = IDLE;
 
+const static DEPLOY_COMM CommandsFullDeploy[] = {DIRTBRAKE_DEPLOY, BAY_ORIENT, ARM_DEPLOY, IDLE};
+const static DEPLOY_COMM CommandsFullRetract[] = {ARM_RETRACT, DIRTBRAKE_DEPLOY, IDLE};
+
+static volatile bool fullDeploy = false;
+static volatile bool fullRetract = false;
+
 void thread_main(ULONG ctx);
 
 int main(void)
@@ -57,75 +63,61 @@ void thread_main(ULONG ctx)
             case IDLE:
                 break;
 
+            // Heartbeat Commands
             case HEARTBEAT_START:
                 MCAN_EnableHeartBeats(1000, heartbeatData);
-                command = IDLE;
                 break;
 
             case HEARTBEAT_STOP:
                 MCAN_DisableHeartBeats();
-                command = IDLE;
                 break;
 
+            // Dirtbrake Commands
             case DIRTBRAKE_DEPLOY:
                 DirtbrakeDeploy();
-                command = IDLE;
                 break;
 
             case DIRTBRAKE_RETRACT:
                 DirtbrakeRetract();
-                command = IDLE;
                 break;
 
+            // Bay Commands
             case BAY_CW:
                 BayCW();
-                command = IDLE;
                 break;
 
             case BAY_CCW:
                 BayCCW(); 
-                command = IDLE;
                 break;
 
             case BAY_STOP:
                 BayStop();
-                command = IDLE;
                 break;
 
+            case BAY_ORIENT:
+                BayOrient();
+                break;
+
+            // Arm Commands
             case ARM_DEPLOY:
                 ArmDeploy();
-                command = LS_DEPLOY;
-                break;
-
-            case LS_DEPLOY:
-                // Poll and handle the arm deployment LS
-                if(LS_DEPLOY());
-                {
-                    command = IDLE;
-                }
                 break;
 
             case ARM_RETRACT:
                 ArmRetract();
-                command = LS_RETRACT;
-                break;
-
-            case LS_RETRACT:
-                // Poll and handle the arm retract LS 
-                if(LS_RETRACT())
-                {
-                    command = IDLE;
-                }
                 break;
 
             case ARM_STOP:
                 ArmStop();
-                command = IDLE;
                 break;
 
+            case ARM_ORIENT:
+                ArmOrient();
+                break;
+
+            // E-Stop
             case EMERGENCY_STOP:
                 EmergencyStop();
-                command = IDLE;
                 break;
 
             default:
@@ -136,13 +128,30 @@ void thread_main(ULONG ctx)
 
 void MCAN_Rx_Handler( void )
 {
+    DEPLOY_COMM receivedComm = IDLE;
+
     if ( mcanRxMessage.mcanID.MCAN_RX_Device == DEV_MAIN_COMPUTE || mcanRxMessage.mcanID.MCAN_RX_Device == DEV_ALL )
     {
-        command = (DEPLOY_COMM) mcanRxMessage.mcanData[0];
+        receivedComm = (DEPLOY_COMM) mcanRxMessage.mcanData[0];
 
         if ( mcanRxMessage.mcanData[7] != 0 )
         {
             command = EMERGENCY_STOP;
+        }
+
+        else if ( receivedComm == FULL_DEPLOYMENT )
+        {
+            
+        }
+
+        else if ( receivedComm = FULL_RETRACTION )
+        {
+
+        }
+
+        else
+        {
+            command = receivedComm;
         }
     } 
 }

@@ -9,6 +9,39 @@
 extern TIM_HandleTypeDef hACT_Tim;
 static Actuator_Config_t actConfig;
 static Actuator_Instance_t actInstance;
+static const uint8_t LS_DELAY_MS = 1000;
+
+
+bool _LS_Deploy(void)
+{
+    if(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Pin, ARM_LS_DEPLOY_Pin))
+    {
+        ArmRetract();
+        tx_thread_sleep(LS_DELAY_MS);
+        while(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin));
+        ArmStop(); 
+
+        return true;
+    }
+
+    return false;
+}
+
+bool _LS_Retract(void)
+{
+    if(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin))
+    {
+        ArmDeploy();
+        tx_thread_sleep(LS_DELAY_MS);
+        while(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin));
+        ArmStop();
+
+        return true;
+    }
+
+    return false;
+}
+
 
 bool DeploymentInit(void)
 {
@@ -30,6 +63,7 @@ bool DeploymentInit(void)
     return true;
 }
 
+// DirtBrake Commands
 void DirtbrakeDeploy(void)
 {
     Drive_Actuator(&actInstance, ACT_USER_MAX_LEN);
@@ -40,6 +74,7 @@ void DirtbrakeRetract(void)
     Drive_Actuator(&actInstance, ACT_USER_MIN_LEN);
 }
 
+// Bay Commands
 void BayCW(void)
 {
 #if defined(BAY_DC_FLIP)
@@ -68,7 +103,13 @@ void BayStop(void)
     HAL_GPIO_WritePin(BAY_DC_Port2, BAY_DC_Pin2, RESET);
 }
 
-bool ArmDeploy(void)
+void BayOrient(void)
+{
+
+}
+
+// Arm Commands
+void ArmDeploy(void)
 {
 #if defined(ARM_DC_FLIP)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, SET);
@@ -78,24 +119,10 @@ bool ArmDeploy(void)
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, SET);
 #endif
 
-    return true;
+    _LS_Deploy();
 }
 
-bool LS_Deploy(void)
-{
-    if(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Pin, ARM_LS_DEPLOY_Pin))
-    {
-        ArmRetract();
-        while(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin));
-        ArmStop(); 
-
-        return true;
-    }
-
-    return false;
-}
-
-bool ArmRetract(void)
+void ArmRetract(void)
 {
 #if defined(ARM_DC_FLIP)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, RESET);
@@ -105,27 +132,20 @@ bool ArmRetract(void)
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, RESET);
 #endif
 
+    _LS_Retract();
+
     return true;
-}
-
-bool LS_Retract(void)
-{
-    if(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin))
-    {
-        ArmDeploy();
-        while(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin));
-        ArmStop();
-
-        return true;
-    }
-
-    return false;
 }
 
 void ArmStop(void)
 {
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, RESET);
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, RESET);
+}
+
+void ArmOrient(void)
+{
+    
 }
 
 void EmergencyStop(void)
