@@ -4,17 +4,22 @@
 #include <stdbool.h>
 #include "dc_motor.h"
 #include "servo.h"
+#include "mcan.h"
+#include "stm32h5xx_hal.h"
 #include "tx_api.h"
 
 extern TIM_HandleTypeDef hACT_Tim;
 static Actuator_Config_t actConfig;
 static Actuator_Instance_t actInstance;
-static const uint8_t LS_DELAY_MS = 1000;
+static const uint16_t LS_DELAY_MS = 1000;
+static const uint16_t DIRTBRAKE_DELAY_MS = 3000;
 
+static const uint8_t deployCommsIndexMax = 2;
+static const uint8_t retractCommsIndexMax = 1;
 
 bool _LS_Deploy(void)
 {
-    if(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Pin, ARM_LS_DEPLOY_Pin))
+    if(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin))
     {
         ArmRetract();
         tx_thread_sleep(LS_DELAY_MS);
@@ -67,11 +72,13 @@ bool DeploymentInit(void)
 void DirtbrakeDeploy(void)
 {
     Drive_Actuator(&actInstance, ACT_USER_MAX_LEN);
+    tx_thread_sleep(DIRTBRAKE_DELAY_MS);
 }
 
 void DirtbrakeRetract(void)
 {
     Drive_Actuator(&actInstance, ACT_USER_MIN_LEN);
+    tx_thread_sleep(DIRTBRAKE_DELAY_MS);
 }
 
 // Bay Commands
@@ -103,13 +110,14 @@ void BayStop(void)
     HAL_GPIO_WritePin(BAY_DC_Port2, BAY_DC_Pin2, RESET);
 }
 
-void BayOrient(void)
+bool BayOrient(void)
 {
-
+    // if bay is not oriented, stay in bay orient 
+    return true;
 }
 
 // Arm Commands
-void ArmDeploy(void)
+bool ArmDeploy(void)
 {
 #if defined(ARM_DC_FLIP)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, SET);
@@ -119,10 +127,15 @@ void ArmDeploy(void)
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, SET);
 #endif
 
-    _LS_Deploy();
+    // return true if limit switch pressed
+    if(_LS_Deploy())
+    {
+        return true;
+    }
+    return false;
 }
 
-void ArmRetract(void)
+bool ArmRetract(void)
 {
 #if defined(ARM_DC_FLIP)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, RESET);
@@ -131,10 +144,14 @@ void ArmRetract(void)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, SET);
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, RESET);
 #endif
+    
+    // return true if limit switch pressed
+    if(_LS_Retract())
+    {
+        return true;
+    }
 
-    _LS_Retract();
-
-    return true;
+    return false;
 }
 
 void ArmStop(void)
@@ -143,14 +160,93 @@ void ArmStop(void)
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, RESET);
 }
 
-void ArmOrient(void)
+bool ArmOrient(void)
 {
-    
+    // return true if arm oriented
+    return true;
 }
 
 void EmergencyStop(void)
 {
     ArmStop();
     BayStop();
+}
+
+// return true if moving to next command state
+bool DeployCommExe(DEPLOY_COMM deployComm)
+{
+    uint8_t heartbeatData[] = { 0xDE, 0xCA, 0XF, 0xC0, 0xFF, 0xEE, 0xCA, 0xFE};
+
+    switch( deployComm )
+    {
+        // Heartbeat Commands
+        case HEARTBEAT_START:
+            MCAN_EnableHeartBeats(1000, heartbeatData);
+            break;
+
+        case HEARTBEAT_STOP:
+            MCAN_DisableHeartBeats();
+            break;
+
+        // Dirtbrake Commands
+        case DIRTBRAKE_DEPLOY:
+            DirtbrakeDeploy();
+            break;
+
+        case DIRTBRAKE_RETRACT:
+            DirtbrakeRetract();
+            break;
+
+        // Bay Commands
+        case BAY_CW:
+            BayCW();
+            break;
+
+        case BAY_CCW:
+            BayCCW(); 
+            break;
+
+        case BAY_STOP:
+            BayStop();
+            break;
+
+        case BAY_ORIENT:
+            // If bay is not oriented, stay in bay orient
+            if(!BayOrient())
+            {
+                return false;
+            }
+            break;
+
+        // Arm Commands
+        case ARM_DEPLOY:
+            ArmDeploy();
+            break;
+
+        case ARM_RETRACT:
+            // If arm is not retracted, stay in arm retract
+            if(!ArmRetract())
+            {
+                return false;
+            }
+            break;
+
+        case ARM_STOP:
+            ArmStop();
+            break;
+
+        case ARM_ORIENT:
+            // If arm is not oriented, stay in arm orient 
+            if(!ArmOrient())
+            {
+                return false;
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    return true;
 }
 

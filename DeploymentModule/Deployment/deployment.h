@@ -5,7 +5,6 @@
 
 typedef enum
 {
-    IDLE,
     HEARTBEAT_START,
     HEARTBEAT_STOP,
 
@@ -22,10 +21,17 @@ typedef enum
     ARM_STOP,
     ARM_ORIENT,
 
+    IDLE_COMM,
+
+} DEPLOY_COMM;
+
+typedef enum
+{
     FULL_DEPLOYMENT,
     FULL_RETRACTION,
-    EMERGENCY_STOP
-} DEPLOY_COMM;
+    EMERGENCY_STOP,
+    IDLE_PROC,
+} DEPLOY_PROCESS;
 
 bool DeploymentInit(void);
 void DirtbrakeDeploy(void);
@@ -34,13 +40,15 @@ void DirtbrakeRetract(void);
 void BayCW(void);
 void BayCCW(void);
 void BayStop(void);
-void BayOrient(void);
+bool BayOrient(void);
 
-void ArmDeploy(void);
-void ArmRetract(void);
+bool ArmDeploy(void);
+bool ArmRetract(void);
 void ArmStop(void);
-void ArmOrient(void);
+bool ArmOrient(void);
 
 void EmergencyStop(void);
+
+bool DeployCommExe(DEPLOY_COMM deployComm);
 
 #endif // __DEPLOYMENT_H typedef enum

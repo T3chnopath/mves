@@ -5,22 +5,28 @@
 #include "servo.c"
 #include "deployment.h"
 
-// Main Thread
-#define THREAD_MAIN_STACK_SIZE 512
-static TX_THREAD stThreadMain;
-static uint8_t auThreadMainStack[THREAD_MAIN_STACK_SIZE];
+// Deploy Process Thread
+#define THREAD_DEPLOY_PROCESS_STACK_SIZE 512
+static TX_THREAD stThreadDeployProcess;
+static uint8_t auThreadDeployProcessStack[THREAD_DEPLOY_PROCESS_STACK_SIZE];
+
+// Blink Thread
+#define THREAD_BLINK_STACK_SIZE 128
+static TX_THREAD stThreadBlink;
+static uint8_t auThreadBlinkStack[THREAD_BLINK_STACK_SIZE];
+
 
 static sMCAN_Message mcanRxMessage = { 0 };
-static uint8_t heartbeatData[] = { 0xDE, 0xCA, 0XF, 0xC0, 0xFF, 0xEE, 0xCA, 0xFE};
-static volatile DEPLOY_COMM command = IDLE;
 
-const static DEPLOY_COMM CommandsFullDeploy[] = {DIRTBRAKE_DEPLOY, BAY_ORIENT, ARM_DEPLOY, IDLE};
-const static DEPLOY_COMM CommandsFullRetract[] = {ARM_RETRACT, DIRTBRAKE_DEPLOY, IDLE};
+static volatile DEPLOY_PROCESS process = IDLE_PROC;
 
-static volatile bool fullDeploy = false;
-static volatile bool fullRetract = false;
+static const DEPLOY_COMM procFullDeployment[] = {DIRTBRAKE_DEPLOY, BAY_ORIENT, ARM_ORIENT, IDLE_COMM};
+static const DEPLOY_COMM procFullRetraction[] = {ARM_RETRACT, DIRTBRAKE_RETRACT, IDLE_COMM};
+static const DEPLOY_COMM procEmergencyStop[]  = {ARM_STOP, BAY_STOP, IDLE_COMM};
 
 void thread_main(ULONG ctx);
+void thread_deploy_process(ULONG ctx);
+void thread_blink(ULONG ctx);
 
 int main(void)
 {
@@ -29,21 +35,6 @@ int main(void)
 
 void tx_application_define(void *first_unused_memory)
 {
-    // Create main thread
-    tx_thread_create( &stThreadMain, 
-                     "thread_main", 
-                      thread_main, 
-                      0, 
-                      auThreadMainStack, 
-                      THREAD_MAIN_STACK_SIZE, 
-                      4,
-                      4, 
-                      0, // Time slicing unused if all threads have unique priorities     
-                      TX_AUTO_START);
-}
-
-void thread_main(ULONG ctx)
-{
     BSP_Init();
 
     MCAN_Init( FDCAN1, DEV_MAIN_COMPUTE, &mcanRxMessage );
@@ -51,107 +42,105 @@ void thread_main(ULONG ctx)
 
     DeploymentInit();
 
-    while(true)
+    // Create high level deployment process thread
+    tx_thread_create( &stThreadDeployProcess, 
+                     "thread_deploy_process", 
+                      thread_deploy_process, 
+                      0, 
+                      auThreadDeployProcessStack, 
+                      THREAD_DEPLOY_PROCESS_STACK_SIZE, 
+                      4,
+                      4, 
+                      0, // Time slicing unused if all threads have unique priorities     
+                      TX_AUTO_START);
+
+    // Create blink thread
+    tx_thread_create( &stThreadBlink, 
+                     "thread_blink", 
+                      thread_blink, 
+                      0, 
+                      auThreadBlinkStack, 
+                      THREAD_BLINK_STACK_SIZE, 
+                      15,
+                      15, 
+                      0, // Time slicing unused if all threads have unique priorities     
+                      TX_AUTO_START);
+}
+
+void thread_deploy_process(ULONG ctx)
+{
+    // Select initial command
+    uint8_t procCommandIndex = 0;
+    const DEPLOY_COMM * procCommandArr;
+    DEPLOY_PROCESS currProcess = process;
+    switch(currProcess)
     {
-        // Toggle LED once a second
-        if( (tx_time_get() % 1000) == 0 ){
-            HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
-        }
+        case FULL_DEPLOYMENT:
+            procCommandArr = procFullDeployment;
+            break;
 
-        switch(command)
+        case FULL_RETRACTION:
+            procCommandArr = procFullRetraction;
+            break;
+        
+        case EMERGENCY_STOP:
+            procCommandArr = procEmergencyStop;
+            break;
+    }
+
+    while(procCommandArr[procCommandIndex] != IDLE_COMM)
+    {  
+        if(DeployCommExe(procCommandArr[procCommandIndex]))
         {
-            case IDLE:
-                break;
-
-            // Heartbeat Commands
-            case HEARTBEAT_START:
-                MCAN_EnableHeartBeats(1000, heartbeatData);
-                break;
-
-            case HEARTBEAT_STOP:
-                MCAN_DisableHeartBeats();
-                break;
-
-            // Dirtbrake Commands
-            case DIRTBRAKE_DEPLOY:
-                DirtbrakeDeploy();
-                break;
-
-            case DIRTBRAKE_RETRACT:
-                DirtbrakeRetract();
-                break;
-
-            // Bay Commands
-            case BAY_CW:
-                BayCW();
-                break;
-
-            case BAY_CCW:
-                BayCCW(); 
-                break;
-
-            case BAY_STOP:
-                BayStop();
-                break;
-
-            case BAY_ORIENT:
-                BayOrient();
-                break;
-
-            // Arm Commands
-            case ARM_DEPLOY:
-                ArmDeploy();
-                break;
-
-            case ARM_RETRACT:
-                ArmRetract();
-                break;
-
-            case ARM_STOP:
-                ArmStop();
-                break;
-
-            case ARM_ORIENT:
-                ArmOrient();
-                break;
-
-            // E-Stop
-            case EMERGENCY_STOP:
-                EmergencyStop();
-                break;
-
-            default:
-                break;
+            procCommandIndex++;
         }
-    } 
+    }
+
+    tx_thread_suspend(&stThreadDeployProcess);
+}
+
+void thread_blink(ULONG ctx)
+{
+    // Toggle LED once a second
+    if( (tx_time_get() % 1000) == 0 ){
+        HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+    }
 }
 
 void MCAN_Rx_Handler( void )
 {
-    DEPLOY_COMM receivedComm = IDLE;
-
+    DEPLOY_COMM command = IDLE_COMM;
     if ( mcanRxMessage.mcanID.MCAN_RX_Device == DEV_MAIN_COMPUTE || mcanRxMessage.mcanID.MCAN_RX_Device == DEV_ALL )
     {
-        receivedComm = (DEPLOY_COMM) mcanRxMessage.mcanData[0];
-
         if ( mcanRxMessage.mcanData[7] != 0 )
         {
-            command = EMERGENCY_STOP;
-        }
-
-        else if ( receivedComm == FULL_DEPLOYMENT )
-        {
+            process = EMERGENCY_STOP;
+            tx_thread_terminate(&stThreadDeployProcess);
             
+            tx_thread_create( &stThreadDeployProcess, 
+                     "thread_deploy_process", 
+                      thread_deploy_process, 
+                      0, 
+                      auThreadDeployProcessStack, 
+                      THREAD_DEPLOY_PROCESS_STACK_SIZE, 
+                      4,
+                      4, 
+                      0, // Time slicing unused if all threads have unique priorities     
+                      TX_AUTO_START);
+        } 
+        
+        // If first byte is 1, second byte is a deployment process
+        else if ( mcanRxMessage.mcanData[0] == 1 )
+        {
+            process = (DEPLOY_PROCESS) mcanRxMessage.mcanData[1];    
+            tx_thread_resume(&stThreadDeployProcess);
         }
 
-        else if ( receivedComm = FULL_RETRACTION )
+        // If first byte is 0, second byte is a deployment command
+        else if ( mcanRxMessage.mcanData[0] == 0 )
         {
-
-        }
-
-        else
-        {
-            command = receivedComm;
+            command = (DEPLOY_COMM) mcanRxMessage.mcanData[1];
+            DeployCommExe(command); 
         }
     } 
 }
