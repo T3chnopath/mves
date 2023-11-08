@@ -112,9 +112,7 @@ void BayStop(void)
 
 bool BayOrient(void)
 {
-    // if bay is not oriented, stay in bay orient 
-    BayCCW();
-    tx_thread_sleep(5000);
+    // TEMP: pass over this function 
     return true;
 }
 

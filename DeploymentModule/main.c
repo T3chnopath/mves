@@ -1,8 +1,6 @@
 #include "bsp_deployment.h"
 #include "tx_api.h"
 #include "mcan.h"
-#include "dc_motor.h"
-#include "servo.c"
 #include "deployment.h"
 
 // Deploy Process Thread
