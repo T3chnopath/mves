@@ -4,20 +4,20 @@
 #include "deployment.h"
 
 // Deploy Process Thread
-#define THREAD_FULL_DEPLOY_STACK_SIZE 256
+#define THREAD_FULL_DEPLOY_STACK_SIZE 512
 static TX_THREAD stThreadFullDeploy;
 static uint8_t auThreadFullDeployStack[THREAD_FULL_DEPLOY_STACK_SIZE];
 
-#define THREAD_FULL_RETRACT_STACK_SIZE 256
+#define THREAD_FULL_RETRACT_STACK_SIZE 512
 static TX_THREAD stThreadFullRectract;
 static uint8_t auThreadFullRetractStack[THREAD_FULL_RETRACT_STACK_SIZE];
 
-#define THREAD_ESTOP_STACK_SIZE 256
+#define THREAD_ESTOP_STACK_SIZE 512
 static TX_THREAD stThreadEStop;
 static uint8_t auThreadEStopStack[THREAD_ESTOP_STACK_SIZE];
 
 // Blink Thread
-#define THREAD_BLINK_STACK_SIZE 128
+#define THREAD_BLINK_STACK_SIZE 256
 static TX_THREAD stThreadBlink;
 static uint8_t auThreadBlinkStack[THREAD_BLINK_STACK_SIZE];
 
@@ -88,8 +88,8 @@ void tx_application_define(void *first_unused_memory)
                       0, 
                       auThreadBlinkStack, 
                       THREAD_BLINK_STACK_SIZE, 
-                      15,
-                      15, 
+                      7,
+                      7, 
                       0, // Time slicing unused if all threads have unique priorities     
                       TX_AUTO_START);
 }
@@ -172,7 +172,9 @@ void thread_full_retract(ULONG CTX)
 void thread_blink(ULONG ctx)
 {
     // Toggle LED once a second
-    if( (tx_time_get() % 1000) == 0 ){
+    while(true)
+    {
+        tx_thread_sleep(1000);
         HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
     }
 }
