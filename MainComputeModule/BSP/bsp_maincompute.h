@@ -37,17 +37,17 @@
 #define BTN1_Pin    GPIO_PIN_9
 #define BTN1_Port   GPIOB
 
-#define FDCAN_STDBY_Pin GPIO_PIN_13
-#define FDCAN_STDBY_GPIO_Port GPIOC
+#define FDCAN_STDBY_Pin GPIO_PIN_10
+#define FDCAN_STDBY_GPIO_Port GPIOA
 
 // Peripheral Definitions 
 // FDCAN 
-#ifdef FDCAN1_EN
-#define FDCAN_TX_Port GPIOB
 
-#define FDCAN_TX_Pin GPIO_PIN_10
-#define FDCAN_RX_Port GPIOB
-#define FDCAN_RX_Pin GPIO_PIN_12
+#ifdef FDCAN1_EN
+#define FDCAN_TX_Port GPIOA
+#define FDCAN_TX_Pin  GPIO_PIN_12
+#define FDCAN_RX_Port GPIOA
+#define FDCAN_RX_Pin  GPIO_PIN_11
 #endif
 
 // I2C

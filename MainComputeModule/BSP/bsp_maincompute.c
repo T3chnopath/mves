@@ -120,9 +120,10 @@ static void _BSP_GPIO_Init(void)
   GPIO_InitStruct.Pin = BTN1_Pin;
   HAL_GPIO_Init(BTN1_Port, &GPIO_InitStruct);
 
-  /* FDCAN Bullshit */
+  // FDCAN 
   GPIO_PortClkEnable(FDCAN_STDBY_GPIO_Port);
   HAL_GPIO_WritePin(FDCAN_STDBY_GPIO_Port, FDCAN_STDBY_Pin, GPIO_PIN_RESET);
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pin = FDCAN_STDBY_Pin;
   HAL_GPIO_Init(FDCAN_STDBY_GPIO_Port, &GPIO_InitStruct);
 }
@@ -136,9 +137,9 @@ static void _BSP_FDCAN_Init(void)
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
     PeriphClkInitStruct.PLL2.PLL2Source = RCC_PLL2_SOURCE_HSE;
     PeriphClkInitStruct.PLL2.PLL2M = 2;
-    PeriphClkInitStruct.PLL2.PLL2N = 16;
+    PeriphClkInitStruct.PLL2.PLL2N = 32;
     PeriphClkInitStruct.PLL2.PLL2P = 2;
-    PeriphClkInitStruct.PLL2.PLL2Q = 6;
+    PeriphClkInitStruct.PLL2.PLL2Q = 12;
     PeriphClkInitStruct.PLL2.PLL2R = 2;
     PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2_VCIRANGE_3;
     PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2_VCORANGE_WIDE;
@@ -153,9 +154,8 @@ static void _BSP_FDCAN_Init(void)
 
     // Peripheral Clock Enable 
     __HAL_RCC_FDCAN_CLK_ENABLE();
-    // GPIO_PortClkEnable(FDCAN_TX_Port);
-    // GPIO_PortClkEnable(FDCAN_RX_Port);
-    __HAL_RCC_GPIOB_CLK_ENABLE();
+    GPIO_PortClkEnable(FDCAN_TX_Port);
+    GPIO_PortClkEnable(FDCAN_RX_Port);
 
 
     // FDCAN GPIO Configuration
