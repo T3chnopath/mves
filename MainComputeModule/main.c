@@ -13,7 +13,7 @@ static sMCAN_Message mcanRxMessage = { 0 };
 static uint8_t heartbeatData[] = { 0xDE, 0xCA, 0XF, 0xC0, 0xFF, 0xEE, 0xCA, 0xFE};
 
 extern I2C_HandleTypeDef   MTuSC_I2C;
-BNO055_Axis_Vec_t          Euler_Vector;
+BNO055_Axis_Vec_t          BNO055_Vector;
 
 void thread_main(ULONG ctx);
 
@@ -48,6 +48,10 @@ void thread_main(ULONG ctx)
 
     /* Required Boot-up Time for BNO055 */
     tx_thread_sleep(700);
+
+    BNO055_AXIS_CONFIG_t axis_config = {.x = BNO055_Z_AXIS, 
+                                        .y = BNO055_Y_AXIS, 
+                                        .z = BNO055_X_AXIS};
     
     /* BNO055 Init */
     BNO055_I2C_Mount(&MTuSC_I2C);
@@ -55,13 +59,15 @@ void thread_main(ULONG ctx)
         while(1);
     if(BNO055_Set_OP_Mode(NDOF) != BNO055_SUCCESS)
         while(1);
+    if(BNO055_Set_Axis(&axis_config) != BNO055_SUCCESS)
+        while(1);
 
     while(true)
     {
     
         HAL_GPIO_TogglePin(LED0_RED_GPIO_Port, LED0_RED_Pin);
-        BNO055_Get_Euler_Vec(&Euler_Vector);
-        tx_thread_sleep(1000);
+        BNO055_Get_Gravity_Vec(&BNO055_Vector);
+        tx_thread_sleep(100);
 
     }
 }

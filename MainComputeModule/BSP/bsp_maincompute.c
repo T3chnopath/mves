@@ -39,7 +39,7 @@ static void _BSP_SystemClockConfig(void)
     RCC_OscInitStruct.HSI48State     = RCC_HSI48_ON;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource  = RCC_PLL1_SOURCE_HSE;
-    RCC_OscInitStruct.PLL.PLLM = 12;
+    RCC_OscInitStruct.PLL.PLLM = 4;
     RCC_OscInitStruct.PLL.PLLN = 250;
     RCC_OscInitStruct.PLL.PLLP = 2;
     RCC_OscInitStruct.PLL.PLLQ = 2;
@@ -228,8 +228,8 @@ static void _BSP_I2C_Init(void){
   GPIO_InitStruct.Alternate = GPIO_AF4_I2C3;
   
   //Enable I2C GPIOA and GPIOC RCC Clock
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
+  GPIO_PortClkEnable(I2C_SDA_Port);
+  GPIO_PortClkEnable(I2C_SCL_Port);
 
   HAL_GPIO_Init(I2C_SDA_Port, &GPIO_InitStruct);
   HAL_GPIO_Init(I2C_SCL_Port, &GPIO_InitStruct);
