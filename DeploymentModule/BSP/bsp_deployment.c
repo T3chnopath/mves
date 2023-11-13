@@ -151,9 +151,9 @@ static void _BSP_FDCAN_Init(void)
     HAL_GPIO_Init(FDCAN_TX_Port, &GPIO_InitStruct);
     HAL_GPIO_Init(FDCAN_RX_Port, &GPIO_InitStruct);
 
-    // Interrupt init, default to IT0, preempt = 2, subpriority = 0 
+    // Interrupt enable
 #if defined(FDCAN1_EN)
-    HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, 2, 0);
+    HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, FDCAN1_PRI, 1);
     HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
 #endif 
 }
@@ -303,24 +303,23 @@ static void _BSP_ACT_Init(void){
 
 }
 
-static void _BSP_LS_Init(void){
-
+static void _BSP_LS_Init(void)
+{
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+  IRQn_Type ArmLS_RetractIRQn = PinToEXTI(ARM_LS_RETRACT_Pin);
+  IRQn_Type ArmLS_DeployIRQn = PinToEXTI(ARM_LS_DEPLOY_Pin);
 
-  GPIO_PortClkEnable(ARM_LS_RETRACT_Port);
-  GPIO_PortClkEnable(ARM_LS_DEPLOY_Port);
-
-  GPIO_InitStruct.Pin = ARM_LS_DEPLOY_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(ARM_LS_DEPLOY_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct); 
 
-  GPIO_InitStruct.Pin = ARM_LS_RETRACT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(ARM_LS_DEPLOY_Port, &GPIO_InitStruct);
+  // Interrupt enable
+  HAL_NVIC_SetPriority(ArmLS_RetractIRQn, ARM_LS_RETRACT_PRI, 0);
+  HAL_NVIC_EnableIRQ(ArmLS_RetractIRQn);
+
+  HAL_NVIC_SetPriority(ArmLS_DeployIRQn, ARM_LS_DEPLOY_PRI, 1);
+  HAL_NVIC_EnableIRQ(ArmLS_DeployIRQn);
 }
 
 

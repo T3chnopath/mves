@@ -27,21 +27,24 @@
 
 // Limit Switches 
 // LS0
-#define ARM_LS_RETRACT_Pin GPIO_PIN_5
+#define ARM_LS_RETRACT_Pin  GPIO_PIN_5
 #define ARM_LS_RETRACT_Port GPIOC
+#define ARM_LS_RETRACT_PRI  3
 
 // LS1
-#define ARM_LS_DEPLOY_Pin GPIO_PIN_4
+#define ARM_LS_DEPLOY_Pin  GPIO_PIN_4
 #define ARM_LS_DEPLOY_Port GPIOC
+#define ARM_LS_DEPLOY_PRI  3
 
 
 // Peripheral Definitions 
 // FDCAN 
-#ifdef FDCAN1_EN
+#ifdef  FDCAN1_EN
 #define FDCAN_TX_Port GPIOB
-#define FDCAN_TX_Pin GPIO_PIN_10
+#define FDCAN_TX_Pin  GPIO_PIN_10
 #define FDCAN_RX_Port GPIOB
-#define FDCAN_RX_Pin GPIO_PIN_12
+#define FDCAN_RX_Pin  GPIO_PIN_12
+#define FDCAN1_PRI    2
 #endif
 
 // Motor Definitions
