@@ -3,6 +3,6 @@
 
 #include <stdbool.h>
 
-void Bay_Orientate();
+void Bay_Orientate(void);
 
 #endif // __MAINCOMPUTE_H typedef enum

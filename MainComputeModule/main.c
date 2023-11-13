@@ -17,6 +17,33 @@ BNO055_Axis_Vec_t          BNO055_Vector;
 
 void thread_main(ULONG ctx);
 
+typedef enum{
+    CCW,
+    CW
+} ORIENTATION_DIR;
+
+ORIENTATION_DIR initialDir = CW;
+float curr_reading = 0.0;
+
+void average(float* y_avg, float* z_avg, uint8_t sample_size){
+
+    *y_avg = 0;
+    *z_avg = 0;
+
+    for(uint8_t i = 0; i < sample_size; i++){
+        BNO055_Get_Gravity_Vec(&BNO055_Vector);
+        *y_avg += BNO055_Vector.y;
+        *z_avg += BNO055_Vector.z;
+        HAL_Delay(12);
+    }
+    *y_avg /= (float)sample_size;
+    *z_avg /= (float)sample_size;
+}
+
+ORIENTATION_DIR getDir(float y){
+    return (y > 0) ? CCW : CW;     
+}
+
 int main(void)
 {
     /* Initialize BSP */
@@ -46,12 +73,13 @@ void thread_main(ULONG ctx)
 {
     MCAN_SetEnableIT(MCAN_ENABLE);
 
-    /* Required Boot-up Time for BNO055 */
-    tx_thread_sleep(700);
-
+    /* Custom Axis */
     BNO055_AXIS_CONFIG_t axis_config = {.x = BNO055_Z_AXIS, 
                                         .y = BNO055_Y_AXIS, 
                                         .z = BNO055_X_AXIS};
+
+    /* Required Boot-up Time for BNO055 */
+    tx_thread_sleep(700);
     
     /* BNO055 Init */
     BNO055_I2C_Mount(&MTuSC_I2C);
@@ -62,12 +90,44 @@ void thread_main(ULONG ctx)
     if(BNO055_Set_Axis(&axis_config) != BNO055_SUCCESS)
         while(1);
 
+    float y_avg = 0.0;
+    float z_avg = 0.0;
+
     while(true)
     {
     
-        HAL_GPIO_TogglePin(LED0_RED_GPIO_Port, LED0_RED_Pin);
-        BNO055_Get_Gravity_Vec(&BNO055_Vector);
-        tx_thread_sleep(100);
+        average(&y_avg, &z_avg, 100);
+
+        initialDir = getDir(y_avg);
+
+        //Drive_Motor(dir);
+        HAL_GPIO_WritePin(LED0_GREEN_GPIO_Port, LED0_GREEN_Pin, GPIO_PIN_RESET);
+
+        curr_reading = 9.81 - z_avg;
+
+        while(curr_reading > 0.01 || curr_reading < -0.01) {
+            static uint8_t dirChangeCount = 0;
+
+            //Grab Gravity Vector from BNO055
+            BNO055_Get_Gravity_Vec(&BNO055_Vector);
+            
+            //Threshold Calculation
+            curr_reading = 9.81 - BNO055_Vector.z;
+            if(getDir(BNO055_Vector.y) != initialDir) {
+                dirChangeCount++;
+                if (dirChangeCount > 7 && BNO055_Vector.z > 0) {
+                    break;
+                }
+            }
+            else {
+                dirChangeCount = 0;
+            }
+            tx_thread_sleep(100);
+        }
+        //Stop_Motor();
+        HAL_GPIO_WritePin(LED0_GREEN_GPIO_Port, LED0_GREEN_Pin, GPIO_PIN_SET);
+
+        while(1);
 
     }
 }
