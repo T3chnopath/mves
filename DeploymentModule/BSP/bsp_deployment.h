@@ -27,15 +27,18 @@
 
 // Limit Switches 
 // LS0
-#define ARM_LS_RETRACT_Pin  GPIO_PIN_5
-#define ARM_LS_RETRACT_Port GPIOC
-#define ARM_LS_RETRACT_PRI  3
+#define ARM_LS_RETRACT_Pin      GPIO_PIN_5
+#define ARM_LS_RETRACT_Port     GPIOC
+#define ARM_LS_RETRACT_PRI      3
+#define ArmLS_RetractHandle     EXTI5_IRQHandler
 
 // LS1
-#define ARM_LS_DEPLOY_Pin  GPIO_PIN_4
-#define ARM_LS_DEPLOY_Port GPIOC
-#define ARM_LS_DEPLOY_PRI  3
+#define ARM_LS_DEPLOY_Pin       GPIO_PIN_4
+#define ARM_LS_DEPLOY_Port      GPIOC
+#define ARM_LS_DEPLOY_PRI       3
+#define ArmLS_DeployHandle      EXTI4_IRQHandler
 
+#define LS_DEBOUNCE_MS          20
 
 // Peripheral Definitions 
 // FDCAN 

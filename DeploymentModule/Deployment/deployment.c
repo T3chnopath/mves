@@ -8,45 +8,30 @@
 #include "stm32h5xx_hal.h"
 #include "tx_api.h"
 
+static DEPLOY_COMM currentCommand;
+
+
+// Deploy Thread
+#define THREAD_DEPLOY_STACK_SIZE 512
+static TX_THREAD stThreadDeploy;
+static uint8_t auThreadDeployStack[THREAD_DEPLOY_STACK_SIZE];
+
+// Motor Variables
 extern TIM_HandleTypeDef hACT_Tim;
 static Actuator_Config_t actConfig;
 static Actuator_Instance_t actInstance;
 static const uint16_t LS_DELAY_MS = 1000;
 static const uint16_t DIRTBRAKE_DELAY_MS = 3000;
 
-static const uint8_t deployCommsIndexMax = 2;
-static const uint8_t retractCommsIndexMax = 1;
+// Limit Switch Variables
+static bool ArmRetractLS_Pressed = false;
+static bool ArmDeployLS_Pressed  = false;
 
-bool _LS_Deploy(void)
-{
-    if(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin))
-    {
-        ArmRetract();
-        tx_thread_sleep(LS_DELAY_MS);
-        while(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin));
-        ArmStop(); 
+// Bay IMU data
+static float bayY = 0;
+static float bayZ = 0;
 
-        return true;
-    }
-
-    return false;
-}
-
-bool _LS_Retract(void)
-{
-    if(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin))
-    {
-        ArmDeploy();
-        tx_thread_sleep(LS_DELAY_MS);
-        while(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin));
-        ArmStop();
-
-        return true;
-    }
-
-    return false;
-}
-
+void thread_deploy(ULONG ctx);
 
 bool DeploymentInit(void)
 {
@@ -64,6 +49,18 @@ bool DeploymentInit(void)
     if(Actuator_Init(&actInstance) != ACTUATOR_OK){
         return false;
     }
+
+    // Create deployment thread
+    tx_thread_create( &stThreadDeploy, 
+                     "thread_deploy", 
+                      thread_deploy, 
+                      0, 
+                      auThreadDeployStack, 
+                      THREAD_DEPLOY_STACK_SIZE, 
+                      2,
+                      2, 
+                      0, // Time slicing unused if all threads have unique priorities     
+                      TX_DONT_START);
 
     return true;
 }
@@ -110,21 +107,29 @@ void BayStop(void)
     HAL_GPIO_WritePin(BAY_DC_Port2, BAY_DC_Pin2, RESET);
 }
 
-bool BayOrient(void)
+// BLOCKING
+void BayOrient(void)
 {
-    // TEMP: pass over this function 
-    return true;
+    // Set initial rotation
+    if( true )
+    {
+        BayCW();
+    }
+    else if( true )
+    {
+        BayCCW();
+    }
+
+    tx_thread_sleep(1000);
+    BayStop();
+
+    // Terminate Rotation based on IMU
+    while(false);
 }
 
 // Arm Commands
-bool ArmDeploy(void)
+void ArmDeploy(void)
 {
-    // return true if limit switch pressed
-    if(_LS_Deploy())
-    {
-        return true;
-    }
-
 #if defined(ARM_DC_FLIP)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, SET);
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, RESET);
@@ -132,18 +137,23 @@ bool ArmDeploy(void)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, RESET);
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, SET);
 #endif
-    
-    return false;
 }
 
-bool ArmRetract(void)
+void ArmDeployLS(void)
 {
-    // return true if limit switch pressed
-    if(_LS_Retract())
+    ArmDeployLS_Pressed = true;
+    if(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin))
     {
-        return true;
+        ArmRetract();
+        HAL_Delay(LS_DELAY_MS);
+        while(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin));
+        ArmStop(); 
     }
+    ArmDeployLS_Pressed = false;
+}
 
+void ArmRetract(void)
+{
 #if defined(ARM_DC_FLIP)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, RESET);
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, SET);
@@ -151,8 +161,19 @@ bool ArmRetract(void)
     HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, SET);
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, RESET);
 #endif
-    
-    return false;
+}
+
+void ArmRetractLS(void)
+{
+    ArmRetractLS_Pressed = true;
+    if(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin))
+    {
+        ArmDeploy();
+        HAL_Delay(LS_DELAY_MS);
+        while(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin));
+        ArmStop();
+    }
+    ArmRetractLS_Pressed = false;
 }
 
 void ArmStop(void)
@@ -161,89 +182,152 @@ void ArmStop(void)
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, RESET);
 }
 
-bool ArmOrient(void)
+// BLOCKING
+void ArmOrient(void)
 {
-    // TEMP: just deploy the arm relying on limit switches
-    while(!ArmDeploy());
-    
-    return true;
+    // TEMP rely on LS until IMU data is implemented
+    ArmDeploy();
+
+    // Wait for limit switch to be pressed
+    while(!ArmRetractLS_Pressed);
+
+    // Wait for limit switch to be unpressed
+    while(ArmRetractLS_Pressed);
+
+    return;
 }
 
-// return true if moving to next command state
-bool DeployCommExe(DEPLOY_COMM deployComm)
+void EStop(void)
 {
-    uint8_t heartbeatData[] = { 0xDE, 0xCA, 0XF, 0xC0, 0xFF, 0xEE, 0xCA, 0xFE};
+    ArmStop();
+    BayStop();
+}
 
-    switch( deployComm )
-    {
-        // Heartbeat Commands
-        case HEARTBEAT_START:
-            MCAN_EnableHeartBeats(1000, heartbeatData);
-            break;
+void FullDeploy(void)
+{
+    DirtbrakeDeploy();
+    BayOrient();
+    ArmOrient();
+}
 
-        case HEARTBEAT_STOP:
-            MCAN_DisableHeartBeats();
-            break;
+void FullRetract(void)
+{
+    ArmRetract();
+    DirtbrakeRetract();
+}
 
-        // Dirtbrake Commands
-        case DIRTBRAKE_DEPLOY:
-            DirtbrakeDeploy();
-            break;
+void thread_deploy(ULONG ctx)
+{
+    while(true)
+    {                
+        switch( currentCommand )
+        {
+            // Dirtbrake Commands
+            case DIRTBRAKE_DEPLOY:
+                DirtbrakeDeploy();
+                break;
 
-        case DIRTBRAKE_RETRACT:
-            DirtbrakeRetract();
-            break;
+            case DIRTBRAKE_RETRACT:
+                DirtbrakeRetract();
+                break;
 
-        // Bay Commands
-        case BAY_CW:
-            BayCW();
-            break;
+            // Bay Commands
+            case BAY_CW:
+                BayCW();
+                break;
 
-        case BAY_CCW:
-            BayCCW(); 
-            break;
+            case BAY_CCW:
+                BayCCW(); 
+                break;
 
-        case BAY_STOP:
-            BayStop();
-            break;
+            case BAY_STOP:
+                BayStop();
+                break;
 
-        case BAY_ORIENT:
-            // If bay is not oriented, stay in bay orient
-            if(!BayOrient())
-            {
-                return false;
-            }
-            break;
+            case BAY_ORIENT:
+                BayOrient();
+                break;
 
-        // Arm Commands
-        case ARM_DEPLOY:
-            ArmDeploy();
-            break;
+            // Arm Commands
+            case ARM_DEPLOY:
+                ArmDeploy();
+                break;
 
-        case ARM_RETRACT:
-            // If arm is not retracted, stay in arm retract
-            if(!ArmRetract())
-            {
-                return false;
-            }
-            break;
+            case ARM_RETRACT:
+                ArmRetract(); 
+                break;
 
-        case ARM_STOP:
-            ArmStop();
-            break;
+            case ARM_STOP:
+                ArmStop();
+                break;
 
-        case ARM_ORIENT:
-            // If arm is not oriented, stay in arm orient 
-            if(!ArmOrient())
-            {
-                return false;
-            }
-            break;
+            case ARM_ORIENT:
+                ArmOrient();
+                break;
 
-        default:
-            break;
+            // Full commands
+            case FULL_DEPLOY:
+                FullDeploy();
+                break;
+
+            case FULL_RETRACT:
+                FullRetract();
+                break;
+
+            case ESTOP:
+                EStop();
+                break;
+
+            default:
+                break;
+        }
+
+        tx_thread_suspend(&stThreadDeploy);
     }
-
-    return true;
 }
 
+void DeployCommExe(DEPLOY_COMM command)
+{
+    UINT deployThreadStatus;
+
+    // Set current command for module
+    currentCommand = command;
+    
+    // Check if thread is suspended
+    if (tx_thread_info_get(&stThreadDeploy, TX_NULL, &deployThreadStatus, TX_NULL, TX_NULL, TX_NULL, TX_NULL, TX_NULL, NULL) == TX_SUCCESS)
+    {
+        // If thread is in the middle of execution, recreate it
+        if( deployThreadStatus != TX_SUSPENDED )
+        {
+            // Teminate thread
+            tx_thread_terminate(&stThreadDeploy);
+            
+            // Stop all motors
+            EStop(); 
+
+            // Recreate thread
+            tx_thread_create( &stThreadDeploy, 
+                     "thread_deploy", 
+                      thread_deploy, 
+                      0, 
+                      auThreadDeployStack, 
+                      THREAD_DEPLOY_STACK_SIZE, 
+                      2,
+                      2, 
+                      0, // Time slicing unused if all threads have unique priorities     
+                      TX_DONT_START);
+        }
+
+        // If thread is loitering, resume
+        else
+        {
+            tx_thread_resume( &stThreadDeploy);
+        }
+    }    
+}
+
+bool DeployUpdateSensorData(uint8_t * data)
+{
+    bayY = (float) data[0];
+    bayZ = (float) data[4];
+}

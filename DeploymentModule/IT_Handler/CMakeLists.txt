@@ -3,7 +3,7 @@ add_library(IT_Handler
     stm32h5xx_it.c
 )
 
-target_link_libraries(IT_Handler Common threadx)
+target_link_libraries(IT_Handler BSP Deployment Common MCU_Support)
 
 # Include header
 target_include_directories(IT_Handler PUBLIC
