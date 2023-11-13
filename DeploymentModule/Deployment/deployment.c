@@ -10,7 +10,6 @@
 
 static DEPLOY_COMM currentCommand;
 
-
 // Deploy Thread
 #define THREAD_DEPLOY_STACK_SIZE 512
 static TX_THREAD stThreadDeploy;
@@ -61,6 +60,9 @@ bool DeploymentInit(void)
                       2, 
                       0, // Time slicing unused if all threads have unique priorities     
                       TX_DONT_START);
+
+    // Ensure all motors return to default state
+    EStop();
 
     return true;
 }
@@ -239,13 +241,13 @@ void thread_deploy(ULONG ctx)
             case BAY_CCW:
                 BayCCW(); 
                 break;
+        
+            case BAY_ORIENT:
+                BayOrient();
+                break;
 
             case BAY_STOP:
                 BayStop();
-                break;
-
-            case BAY_ORIENT:
-                BayOrient();
                 break;
 
             // Arm Commands
@@ -257,12 +259,12 @@ void thread_deploy(ULONG ctx)
                 ArmRetract(); 
                 break;
 
-            case ARM_STOP:
-                ArmStop();
-                break;
-
             case ARM_ORIENT:
                 ArmOrient();
+                break;
+
+            case ARM_STOP:
+                ArmStop();
                 break;
 
             // Full commands

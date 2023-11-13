@@ -100,6 +100,7 @@ static void _BSP_GPIO_Init(void)
     HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
     GPIO_InitStruct.Pin = LED_BLUE_Pin;
 
+    // Default standby pin to low
     GPIO_PortClkEnable(FDCAN_STDBY_GPIO_Port);
     HAL_GPIO_WritePin(FDCAN_STDBY_GPIO_Port, FDCAN_STDBY_Pin, GPIO_PIN_RESET);
     GPIO_InitStruct.Pin = FDCAN_STDBY_Pin;
@@ -130,12 +131,9 @@ static void _BSP_FDCAN_Init(void)
       _BSP_ErrorHandler();
     }
 
-    // Peripheral Clock Enable 
-    __HAL_RCC_FDCAN_CLK_ENABLE();
-    // GPIO_PortClkEnable(FDCAN_TX_Port);
-    // GPIO_PortClkEnable(FDCAN_RX_Port);
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-
+  __HAL_RCC_FDCAN_CLK_ENABLE();
+    GPIO_PortClkEnable(FDCAN_TX_Port);
+    GPIO_PortClkEnable(FDCAN_RX_Port);
 
     // FDCAN GPIO Configuration
     GPIO_InitStruct.Pin = FDCAN_TX_Pin | FDCAN_RX_Pin;

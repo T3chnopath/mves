@@ -7,7 +7,6 @@
 #define THREAD_BLINK_STACK_SIZE 256
 static TX_THREAD stThreadBlink;
 static uint8_t auThreadBlinkStack[THREAD_BLINK_STACK_SIZE];
-
 static sMCAN_Message mcanRxMessage = { 0 };
 
 void thread_blink(ULONG ctx);
@@ -20,23 +19,22 @@ int main(void)
 void tx_application_define(void *first_unused_memory)
 {
     BSP_Init();
-    #define THREAD_BLINK_STACK_SIZE 256
-    static TX_THREAD stThreadBlink;
-    static uint8_t auThreadBlinkStack[THREAD_BLINK_STACK_SIZE];
+    
     MCAN_Init( FDCAN1, DEV_DEPLOYMENT, &mcanRxMessage );
     MCAN_SetEnableIT(MCAN_ENABLE);
 
     DeploymentInit();
-}
 
-void thread_blink(ULONG ctx)
-{
-    // Toggle LED once a second
-    while(true)
-    {
-        tx_thread_sleep(1000);
-        HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
-    }
+    tx_thread_create( &stThreadBlink, 
+        "thread_blink", 
+        thread_blink, 
+        0, 
+        auThreadBlinkStack, 
+        THREAD_BLINK_STACK_SIZE, 
+        2,
+        2, 
+        0, // Time slicing unused if all threads have unique priorities     
+        TX_AUTO_START);
 }
 
 void MCAN_Rx_Handler( void )
@@ -53,5 +51,15 @@ void MCAN_Rx_Handler( void )
     {
         command = (DEPLOY_COMM) mcanRxMessage.mcanData[1];    
         DeployCommExe(command);
+    }
+}
+
+void thread_blink(ULONG ctx)
+{
+    // Toggle LED once a second
+    while(true)
+    {
+        tx_thread_sleep(1000);
+        HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
     }
 }
