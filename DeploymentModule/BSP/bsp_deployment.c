@@ -166,7 +166,7 @@ static void _BSP_BAY_DC_Init(void)
     // Pin Configurations 
     GPIO_InitStruct.Pin = BAY_DC_Pin1 | BAY_DC_Pin2;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(BAY_DC_Port1, &GPIO_InitStruct);
     HAL_GPIO_Init(BAY_DC_Port2, &GPIO_InitStruct);
