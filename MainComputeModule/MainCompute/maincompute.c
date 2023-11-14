@@ -2,6 +2,7 @@
 #include "bsp_maincompute.h"
 
 #include <stdbool.h>
+#include <string.h>
 #include "bno055.h"
 #include "mcan.h"
 #include "tx_api.h"
@@ -64,10 +65,12 @@ bool IMU_SensorNodeInit(MCAN_DEV rxDevice, uint16_t periodMS)
 
 void thread_sensor_node(ULONG periodMS)
 {
-    uint8_t mcanTXData[8];
+    uint8_t IMU_Data[8];
     uint32_t sample_size = 0;
     float y_sum = 0;
     float z_sum = 0;
+    float y_avg = 0;
+    float z_avg = 0;
 
     while(true)
     {
@@ -81,11 +84,13 @@ void thread_sensor_node(ULONG periodMS)
         // Every period, send averged IMU data
         if( tx_time_get() % periodMS == 0)
         {
-            mcanTXData[0] = (float) y_sum / sample_size;
-            mcanTXData[3] = (float) z_sum / sample_size;
-            MCAN_TX(MCAN_DEBUG, SENSOR_DATA, DEV_DEPLOYMENT, mcanTXData);
+            y_avg = (float) y_sum / sample_size;
+            z_avg = (float) z_sum / sample_size;
+            memcpy(IMU_Data, &y_avg, sizeof(float));
+            memcpy(IMU_Data + sizeof(float), &z_avg, sizeof(float));
+            MCAN_TX(MCAN_DEBUG, SENSOR_DATA, DEV_DEPLOYMENT, IMU_Data);
             
-            sample_size = y_sum = z_sum = 0;
+            sample_size = y_sum = y_avg = z_sum = z_avg = 0;
         }
     }
 }

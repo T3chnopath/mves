@@ -327,6 +327,6 @@ void DeployCommExe(DEPLOY_COMM command)
 
 bool DeployUpdateSensorData(uint8_t * data)
 {
-    bayY = (float) data[0];
-    bayZ = (float) data[4];
+    memcpy(&bayY, data, sizeof(float));
+    memcpy(&bayZ, data + sizeof(float), sizeof(float));
 }
