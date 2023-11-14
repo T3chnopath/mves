@@ -1,11 +1,15 @@
 #include "bsp_maincompute.h"
 #include "utility.h"
+#include "tx_api.h"
 
 static void _BSP_SystemClockConfig(void);
 static void _BSP_ErrorHandler(void);
 static void _BSP_GPIO_Init(void);
 static void _BSP_FDCAN_Init(void);
 static void _BSP_I2C_Init(void);
+
+static const uint16_t BSP_CLK_DELAY_MS = 100;
+static const uint16_t BSP_DELAY_MS = 100;
 
 // Peripheral Instance
 I2C_HandleTypeDef   MTuSC_I2C;
@@ -14,10 +18,12 @@ void BSP_Init(void)
 {
     HAL_Init();
     _BSP_SystemClockConfig();
+    tx_thread_sleep(BSP_CLK_DELAY_MS);
 
     _BSP_GPIO_Init();
     _BSP_FDCAN_Init();
     _BSP_I2C_Init(); 
+    tx_thread_sleep(BSP_DELAY_MS);
 }
 
 static void _BSP_SystemClockConfig(void)
