@@ -23,7 +23,7 @@ typedef enum
     FULL_RETRACT,
     ESTOP,
 
-    IDLE_COMM,
+    IDLE,
 
 } DEPLOY_COMM;
 

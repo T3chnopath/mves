@@ -233,11 +233,16 @@ bool MCAN_Init( FDCAN_GlobalTypeDef* FDCAN_Instance, MCAN_DEV currentDevice, sMC
         return false;
     }
 
-   if ( !_MCAN_ConfigFilter() )
+    if ( !_MCAN_ConfigFilter() )
     {
         return false;
     }
 
+    if ( !MCAN_SetEnableIT(MCAN_ENABLE) )
+    {
+        return false;
+    }
+    
    return true;
 }
 

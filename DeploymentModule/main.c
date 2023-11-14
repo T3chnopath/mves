@@ -3,13 +3,20 @@
 #include "mcan.h"
 #include "deployment.h"
 
+// Main Thread
+#define THREAD_MAIN_STACK_SIZE 512
+static TX_THREAD stThreadMain;
+static uint8_t auThreadMainStack[THREAD_MAIN_STACK_SIZE];
+void thread_main(ULONG ctx);
+
 // Blink Thread
 #define THREAD_BLINK_STACK_SIZE 256
 static TX_THREAD stThreadBlink;
 static uint8_t auThreadBlinkStack[THREAD_BLINK_STACK_SIZE];
-static sMCAN_Message mcanRxMessage = { 0 };
-
 void thread_blink(ULONG ctx);
+
+static sMCAN_Message mcanRxMessage = { 0 };
+static const uint16_t LED_BLINK_TIME = 1000;
 
 int main(void)
 {
@@ -18,12 +25,16 @@ int main(void)
 
 void tx_application_define(void *first_unused_memory)
 {
-    BSP_Init();
-    
-    MCAN_Init( FDCAN1, DEV_DEPLOYMENT, &mcanRxMessage );
-    MCAN_SetEnableIT(MCAN_ENABLE);
-
-    DeploymentInit();
+    tx_thread_create( &stThreadMain, 
+        "thread_main", 
+        thread_main, 
+        0, 
+        auThreadMainStack, 
+        THREAD_MAIN_STACK_SIZE, 
+        0,
+        0, 
+        0,  
+        TX_AUTO_START);
 
     tx_thread_create( &stThreadBlink, 
         "thread_blink", 
@@ -31,35 +42,49 @@ void tx_application_define(void *first_unused_memory)
         0, 
         auThreadBlinkStack, 
         THREAD_BLINK_STACK_SIZE, 
-        2,
-        2, 
-        0, // Time slicing unused if all threads have unique priorities     
+        10,
+        10, 
+        0,
         TX_AUTO_START);
 }
 
-void MCAN_Rx_Handler( void )
+void thread_main(ULONG ctx)
 {
-    uint32_t command = 0;
-    // If sensor data, update IMU
-    if ( mcanRxMessage.mcanID.MCAN_CAT == SENSOR_DATA )
-    {
-        DeployUpdateSensorData( mcanRxMessage.mcanData );
-    }
+    // Initialize BSP and App layer
+    BSP_Init();
+    
+    MCAN_Init( FDCAN1, DEV_DEPLOYMENT, &mcanRxMessage );
 
-    // If first byte is 1, second byte is a deployment command
-    else if ( mcanRxMessage.mcanData[0] == 1 )
+    DeploymentInit();
+    
+    while(true)
     {
-        command = (DEPLOY_COMM) mcanRxMessage.mcanData[1];    
-        DeployCommExe(command);
+        // If sensor data, update IMU
+        if ( mcanRxMessage.mcanID.MCAN_CAT == SENSOR_DATA )
+        {
+            DeployUpdateSensorData( mcanRxMessage.mcanData );
+        }
+
+        // If first byte is 1, second byte is a deployment command
+        else if ( mcanRxMessage.mcanData[0] == 1 )
+        {
+            DeployCommExe((DEPLOY_COMM) mcanRxMessage.mcanData[1]);
+        }
+
+        tx_thread_suspend(&stThreadMain);
     }
 }
 
 void thread_blink(ULONG ctx)
 {
-    // Toggle LED once a second
     while(true)
     {
-        tx_thread_sleep(1000);
-        HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+        tx_thread_sleep(LED_BLINK_TIME);
+        HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin);
     }
+}
+
+void MCAN_Rx_Handler( void )
+{
+    tx_thread_resume(&stThreadMain);
 }

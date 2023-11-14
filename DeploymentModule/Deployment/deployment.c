@@ -8,7 +8,7 @@
 #include "stm32h5xx_hal.h"
 #include "tx_api.h"
 
-static DEPLOY_COMM currentCommand;
+static DEPLOY_COMM currentCommand = IDLE;
 
 // Deploy Thread
 #define THREAD_DEPLOY_STACK_SIZE 512
@@ -19,7 +19,7 @@ static uint8_t auThreadDeployStack[THREAD_DEPLOY_STACK_SIZE];
 extern TIM_HandleTypeDef hACT_Tim;
 static Actuator_Config_t actConfig;
 static Actuator_Instance_t actInstance;
-static const uint16_t LS_DELAY_MS = 1000;
+static const uint16_t LS_DELAY_MS = 5000;
 static const uint16_t DIRTBRAKE_DELAY_MS = 3000;
 
 // Limit Switch Variables
@@ -60,9 +60,6 @@ bool DeploymentInit(void)
                       2, 
                       0, // Time slicing unused if all threads have unique priorities     
                       TX_DONT_START);
-
-    // Ensure all motors return to default state
-    EStop();
 
     return true;
 }
@@ -280,6 +277,9 @@ void thread_deploy(ULONG ctx)
                 EStop();
                 break;
 
+            case IDLE:
+                break;
+
             default:
                 break;
         }
@@ -304,9 +304,6 @@ void DeployCommExe(DEPLOY_COMM command)
             // Teminate thread
             tx_thread_terminate(&stThreadDeploy);
             
-            // Stop all motors
-            EStop(); 
-
             // Recreate thread
             tx_thread_create( &stThreadDeploy, 
                      "thread_deploy", 

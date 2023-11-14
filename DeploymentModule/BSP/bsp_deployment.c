@@ -1,5 +1,6 @@
 #include "bsp_deployment.h"
 #include "utility.h"
+#include "tx_api.h"
 
 static void _BSP_SystemClockConfig(void);
 static void _BSP_ErrorHandler(void);
@@ -14,10 +15,14 @@ TIM_HandleTypeDef hBayDC_Tim;
 TIM_HandleTypeDef hArmDC_Tim;
 TIM_HandleTypeDef hACT_Tim;
 
+static const uint16_t BSP_CLK_DELAY_MS = 100;
+static const uint16_t BSP_DELAY_MS = 100;
+
 void BSP_Init(void)
 {
     HAL_Init();
     _BSP_SystemClockConfig();
+    tx_thread_sleep(BSP_CLK_DELAY_MS);
 
     _BSP_GPIO_Init();
     _BSP_FDCAN_Init();
@@ -27,6 +32,8 @@ void BSP_Init(void)
     _BSP_ACT_Init();
 
     _BSP_LS_Init();
+
+    tx_thread_sleep(BSP_DELAY_MS);
 }
 
 static void _BSP_SystemClockConfig(void)
@@ -82,28 +89,26 @@ static void _BSP_SystemClockConfig(void)
 static void _BSP_GPIO_Init(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 
     GPIO_PortClkEnable(LED_RED_GPIO_Port);
-    HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
     GPIO_InitStruct.Pin = LED_RED_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(LED_RED_GPIO_Port, &GPIO_InitStruct);
 
     GPIO_PortClkEnable(LED_GREEN_GPIO_Port);
-    HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
     GPIO_InitStruct.Pin = LED_GREEN_Pin;
     HAL_GPIO_Init(LED_GREEN_GPIO_Port, &GPIO_InitStruct);
 
     GPIO_PortClkEnable(LED_BLUE_GPIO_Port);
-    HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
     GPIO_InitStruct.Pin = LED_BLUE_Pin;
+    HAL_GPIO_Init(LED_BLUE_GPIO_Port, &GPIO_InitStruct);
 
     // Default standby pin to low
     GPIO_PortClkEnable(FDCAN_STDBY_GPIO_Port);
-    HAL_GPIO_WritePin(FDCAN_STDBY_GPIO_Port, FDCAN_STDBY_Pin, GPIO_PIN_RESET);
     GPIO_InitStruct.Pin = FDCAN_STDBY_Pin;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     HAL_GPIO_Init(FDCAN_STDBY_GPIO_Port, &GPIO_InitStruct);
 }
 
@@ -170,7 +175,6 @@ static void _BSP_BAY_DC_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(BAY_DC_Port1, &GPIO_InitStruct);
     HAL_GPIO_Init(BAY_DC_Port2, &GPIO_InitStruct);
-
 }
 
 static void _BSP_ARM_DC_Init(void)
@@ -239,7 +243,6 @@ static void _BSP_ARM_DC_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(ARM_DC_Port1, &GPIO_InitStruct);
     HAL_GPIO_Init(ARM_DC_Port2, &GPIO_InitStruct);
-
 }
 
 static void _BSP_ACT_Init(void){
@@ -319,7 +322,6 @@ static void _BSP_LS_Init(void)
   HAL_NVIC_SetPriority(ArmLS_DeployIRQn, ARM_LS_DEPLOY_PRI, 1);
   HAL_NVIC_EnableIRQ(ArmLS_DeployIRQn);
 }
-
 
 static void _BSP_ErrorHandler(void)
 {
