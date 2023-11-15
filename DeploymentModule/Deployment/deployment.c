@@ -305,3 +305,10 @@ void DeployCommExe(DEPLOY_COMM command)
     currentCommand = command;
     newCommand = true;
 }
+
+// return true if busy
+bool DeployCommBusy(void)
+{
+    // If still processing, newCommand is true
+    return newCommand;
+}

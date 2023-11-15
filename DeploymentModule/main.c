@@ -118,21 +118,27 @@ void thread_main(ULONG ctx)
     
     while(true)
     {
-        // If message in queue, process
+        // If message in queue and DeployComm is ready to process
         if(!MCAN_QueueEmpty(&mcanQueue))
         {
             currMcanRxMessage = MCAN_Dequeue(&mcanQueue);
 
-           // If first byte is 1, second byte is a deployment command
-            if ( currMcanRxMessage.mcanData[0] == 1 )
+            // If sensor data, update IMU
+            if ( currMcanRxMessage.mcanID.MCAN_CAT == SENSOR_DATA )
+            {
+                IMU_Update( currMcanRxMessage.mcanData );
+            }
+
+            // If first byte is 1, second byte is a deployment command. Check if Deploy isn't busy.
+            else if ( currMcanRxMessage.mcanData[0] == 1 && !DeployCommBusy())
             {
                 DeployCommExe((DEPLOY_COMM) currMcanRxMessage.mcanData[1]);
             }
-         
-            // If sensor data, update IMU
-            else if ( currMcanRxMessage.mcanID.MCAN_CAT == SENSOR_DATA )
+        
+            // If cannot process, requeue command
+            else
             {
-                IMU_Update( currMcanRxMessage.mcanData );
+                MCAN_Enqueue(&mcanQueue, currMcanRxMessage);
             }
         }
         tx_thread_sleep(THREAD_MAIN_DELAY_MS);

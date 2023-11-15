@@ -48,5 +48,6 @@ void FullRetract(void);
 void EStop(void);
 
 void DeployCommExe(DEPLOY_COMM command);
+bool DeployCommBusy(void);
 
 #endif // __DEPLOYMENT_H typedef enum
