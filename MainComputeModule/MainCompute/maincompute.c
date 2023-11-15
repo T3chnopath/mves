@@ -58,9 +58,19 @@ bool IMU_SensorNodeInit(MCAN_DEV rxDevice, uint16_t periodMS)
         3,
         3, 
         0,  
-        TX_AUTO_START);
+        TX_DONT_START);
 
     return true;
+}
+
+void IMU_SensorNodeEnable( void )
+{
+    tx_thread_resume(&stThreadSensorNode);
+}
+
+void IMU_SensorNodeDisable( void )
+{
+    tx_thread_delete(&stThreadSensorNode);
 }
 
 void thread_sensor_node(ULONG periodMS)

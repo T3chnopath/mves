@@ -48,6 +48,5 @@ void FullRetract(void);
 void EStop(void);
 
 void DeployCommExe(DEPLOY_COMM command);
-bool DeployUpdateSensorData(uint8_t * data);
 
 #endif // __DEPLOYMENT_H typedef enum

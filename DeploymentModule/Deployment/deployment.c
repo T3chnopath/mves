@@ -5,6 +5,7 @@
 #include "dc_motor.h"
 #include "servo.h"
 #include "mcan.h"
+#include "imu.h"
 #include "stm32h5xx_hal.h"
 #include "tx_api.h"
 
@@ -14,21 +15,21 @@ static DEPLOY_COMM currentCommand = IDLE;
 #define THREAD_DEPLOY_STACK_SIZE 512
 static TX_THREAD stThreadDeploy;
 static uint8_t auThreadDeployStack[THREAD_DEPLOY_STACK_SIZE];
+static const uint16_t THREAD_DEPLOY_DELAY_MS = 10;
+static const uint16_t SENSOR_NODE_EN_DELAY_MS = 5000;
 
 // Motor Variables
 extern TIM_HandleTypeDef hACT_Tim;
 static Actuator_Config_t actConfig;
 static Actuator_Instance_t actInstance;
 static const uint16_t LS_DELAY_MS = 5000;
-static const uint16_t DIRTBRAKE_DELAY_MS = 3000;
+static const uint16_t DIRTBRAKE_DELAY_MS = 5000;
 
 // Limit Switch Variables
 static bool ArmRetractLS_Pressed = false;
 static bool ArmDeployLS_Pressed  = false;
 
-// Bay IMU data
-static float bayY = 0;
-static float bayZ = 0;
+static volatile bool newCommand = false;
 
 void thread_deploy(ULONG ctx);
 
@@ -59,7 +60,11 @@ bool DeploymentInit(void)
                       2,
                       2, 
                       0, // Time slicing unused if all threads have unique priorities     
-                      TX_DONT_START);
+                      TX_AUTO_START);
+
+    // Request sensor node IMU data
+    tx_thread_sleep(SENSOR_NODE_EN_DELAY_MS);
+    MCAN_TX(MCAN_DEBUG, SENSOR_DATA, DEV_MAIN_COMPUTE, (uint8_t[8]) {1, 0, 0, 0, 0, 0, 0, 0});
 
     return true;
 }
@@ -109,21 +114,22 @@ void BayStop(void)
 // BLOCKING
 void BayOrient(void)
 {
-    // Set initial rotation
-    if( true )
+    // Get initial direction
+    BAY_DIR initialDir = IMU_GetDirBias();
+    switch(initialDir)
     {
-        BayCW();
-    }
-    else if( true )
-    {
-        BayCCW();
+        case CW:
+            BayCCW();
+            break;
+        
+        case CCW:
+            BayCW();
+            break;
     }
 
-    tx_thread_sleep(1000);
+    // Rotate until direction changes
+    while(initialDir == IMU_GetDirBias());
     BayStop();
-
-    // Terminate Rotation based on IMU
-    while(false);
 }
 
 // Arm Commands
@@ -218,115 +224,84 @@ void FullRetract(void)
 void thread_deploy(ULONG ctx)
 {
     while(true)
-    {                
-        switch( currentCommand )
+    {             
+        if( newCommand )
         {
-            // Dirtbrake Commands
-            case DIRTBRAKE_DEPLOY:
-                DirtbrakeDeploy();
-                break;
+            switch( currentCommand )
+            {
+                // Dirtbrake Commands
+                case DIRTBRAKE_DEPLOY:
+                    DirtbrakeDeploy();
+                    break;
 
-            case DIRTBRAKE_RETRACT:
-                DirtbrakeRetract();
-                break;
+                case DIRTBRAKE_RETRACT:
+                    DirtbrakeRetract();
+                    break;
 
-            // Bay Commands
-            case BAY_CW:
-                BayCW();
-                break;
+                // Bay Commands
+                case BAY_CW:
+                    BayCW();
+                    break;
 
-            case BAY_CCW:
-                BayCCW(); 
-                break;
-        
-            case BAY_ORIENT:
-                BayOrient();
-                break;
+                case BAY_CCW:
+                    BayCCW(); 
+                    break;
+            
+                case BAY_ORIENT:
+                    BayOrient();
+                    break;
 
-            case BAY_STOP:
-                BayStop();
-                break;
+                case BAY_STOP:
+                    BayStop();
+                    break;
 
-            // Arm Commands
-            case ARM_DEPLOY:
-                ArmDeploy();
-                break;
+                // Arm Commands
+                case ARM_DEPLOY:
+                    ArmDeploy();
+                    break;
 
-            case ARM_RETRACT:
-                ArmRetract(); 
-                break;
+                case ARM_RETRACT:
+                    ArmRetract(); 
+                    break;
 
-            case ARM_ORIENT:
-                ArmOrient();
-                break;
+                case ARM_ORIENT:
+                    ArmOrient();
+                    break;
 
-            case ARM_STOP:
-                ArmStop();
-                break;
+                case ARM_STOP:
+                    ArmStop();
+                    break;
 
-            // Full commands
-            case FULL_DEPLOY:
-                FullDeploy();
-                break;
+                // Full commands
+                case FULL_DEPLOY:
+                    FullDeploy();
+                    break;
 
-            case FULL_RETRACT:
-                FullRetract();
-                break;
+                case FULL_RETRACT:
+                    FullRetract();
+                    break;
 
-            case ESTOP:
-                EStop();
-                break;
+                case ESTOP:
+                    EStop();
+                    break;
 
-            case IDLE:
-                break;
+                case IDLE:
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
+            }
+
+        newCommand = false;
         }
-
-        tx_thread_suspend(&stThreadDeploy);
+    
+    tx_thread_sleep(THREAD_DEPLOY_DELAY_MS);
     }
 }
 
 void DeployCommExe(DEPLOY_COMM command)
 {
-    UINT deployThreadStatus;
-
     // Set current command for module
     currentCommand = command;
-    
-    // Check if thread is suspended
-    if (tx_thread_info_get(&stThreadDeploy, TX_NULL, &deployThreadStatus, TX_NULL, TX_NULL, TX_NULL, TX_NULL, TX_NULL, NULL) == TX_SUCCESS)
-    {
-        // If thread is in the middle of execution, recreate it
-        if( deployThreadStatus != TX_SUSPENDED )
-        {
-            // Teminate thread
-            tx_thread_terminate(&stThreadDeploy);
-            
-            // Recreate thread
-            tx_thread_create( &stThreadDeploy, 
-                     "thread_deploy", 
-                      thread_deploy, 
-                      0, 
-                      auThreadDeployStack, 
-                      THREAD_DEPLOY_STACK_SIZE, 
-                      2,
-                      2, 
-                      0, // Time slicing unused if all threads have unique priorities     
-                      TX_DONT_START);
-        }
-
-        // If thread is loitering, resume
-        else
-        {
-            tx_thread_resume( &stThreadDeploy);
-        }
-    }    
-}
-
-bool DeployUpdateSensorData(uint8_t * data)
-{
-    memcpy(&bayY, data, sizeof(float));
-    memcpy(&bayZ, data + sizeof(float), sizeof(float));
+    newCommand = true;
 }

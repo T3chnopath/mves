@@ -8,7 +8,7 @@
 #define THREAD_MAIN_STACK_SIZE 512
 static TX_THREAD stThreadMain;
 static uint8_t auThreadMainStack[THREAD_MAIN_STACK_SIZE];
-static const uint16_t THREAD_MAIN_DELAY = 10;
+static const uint16_t THREAD_MAIN_DELAY_MS = 10;
 void thread_main(ULONG ctx);
 
 // Blink Thread
@@ -57,11 +57,11 @@ void thread_main(ULONG ctx)
     
     MCAN_Init( FDCAN1, DEV_DEPLOYMENT, &mcanRxMessage );
 
-    IMU_SensorNodeInit( DEV_DEPLOYMENT, 500);
+    IMU_SensorNodeInit( DEV_DEPLOYMENT, 250);
 
     while(true)
     {
-        tx_thread_sleep(THREAD_MAIN_DELAY);
+        tx_thread_sleep(THREAD_MAIN_DELAY_MS);
     }
 }
 
@@ -73,6 +73,23 @@ void thread_blink(ULONG ctx)
         HAL_GPIO_TogglePin(LED0_GREEN_GPIO_Port, LED0_GREEN_Pin);
     }
 }
+
+void MCAN_Rx_Handler( void )
+{   
+    // If sensor data request from Deployment Board
+    if(mcanRxMessage.mcanID.MCAN_CAT == SENSOR_DATA && mcanRxMessage.mcanID.MCAN_TX_Device == DEV_DEPLOYMENT)
+    {
+        if(mcanRxMessage.mcanData[0] == 1)
+        {
+            IMU_SensorNodeEnable();
+        }   
+        else if(mcanRxMessage.mcanData[0] == 0)
+        {
+            IMU_SensorNodeDisable();
+        }
+    }
+}
+
 
 // extern I2C_HandleTypeDef   MTuSC_I2C;
 // BNO055_Axis_Vec_t          BNO055_Vector;

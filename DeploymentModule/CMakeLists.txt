@@ -1,5 +1,6 @@
 add_subdirectory(IT_Handler)
 add_subdirectory(BSP)
+add_subdirectory(IMU)
 add_subdirectory(Deployment)
 
 add_executable(${BUILD_TARGET}.elf
@@ -21,5 +22,6 @@ target_link_libraries(${BUILD_TARGET}.elf
     Common
     IT_Handler
     BSP
+    IMU
     Deployment
 )
