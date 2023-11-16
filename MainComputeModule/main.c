@@ -55,9 +55,9 @@ void thread_main(ULONG ctx)
     // Initialize BSP and App layer
     BSP_Init();
     
-    MCAN_Init( FDCAN1, DEV_DEPLOYMENT, &mcanRxMessage );
+    MCAN_Init( FDCAN1, DEV_MAIN_COMPUTE, &mcanRxMessage );
 
-    IMU_SensorNodeInit( DEV_DEPLOYMENT, 250);
+    IMU_SensorNodeInit( DEV_DEPLOYMENT, 500);
 
     while(true)
     {

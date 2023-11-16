@@ -123,16 +123,16 @@ void thread_main(ULONG ctx)
         {
             currMcanRxMessage = MCAN_Dequeue(&mcanQueue);
 
-            // If sensor data, update IMU
-            if ( currMcanRxMessage.mcanID.MCAN_CAT == SENSOR_DATA )
-            {
-                IMU_Update( currMcanRxMessage.mcanData );
-            }
-
             // If first byte is 1, second byte is a deployment command. Check if Deploy isn't busy.
-            else if ( currMcanRxMessage.mcanData[0] == 1 && !DeployCommBusy())
+            if ( currMcanRxMessage.mcanData[0] == 1 && !DeployCommBusy())
             {
                 DeployCommExe((DEPLOY_COMM) currMcanRxMessage.mcanData[1]);
+            }
+            
+             // If sensor data, update IMU
+            else if ( currMcanRxMessage.mcanID.MCAN_CAT == SENSOR_DATA )
+            {
+                IMU_Update( currMcanRxMessage.mcanData );
             }
         
             // If cannot process, requeue command
@@ -156,6 +156,14 @@ void thread_blink(ULONG ctx)
 
 void MCAN_Rx_Handler( void )
 {
+    static bool firstCall = true;
+    
     // Add latest message to queue
     MCAN_Enqueue(&mcanQueue, mcanRxMessage);
+
+    if(firstCall)
+    {
+        MCAN_TX(MCAN_DEBUG, SENSOR_DATA, DEV_MAIN_COMPUTE, (uint8_t[8]) {1, 0, 0, 0, 0, 0, 0, 0});
+        firstCall = false;
+    }
 }

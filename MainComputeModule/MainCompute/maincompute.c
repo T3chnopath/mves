@@ -8,7 +8,7 @@
 #include "tx_api.h"
 
 extern I2C_HandleTypeDef MTuSC_I2C;
-BNO055_Axis_Vec_t BNO055_Vector;
+static BNO055_Axis_Vec_t BNO055_Vector;
 static const uint16_t BNO055_DELAY_MS = 1;
 static MCAN_DEV _rxDevice;
 
@@ -46,7 +46,6 @@ bool _BNO055_Init(void)
 bool IMU_SensorNodeInit(MCAN_DEV rxDevice, uint16_t periodMS)
 {
     _rxDevice = rxDevice;
-
     _BNO055_Init();
 
     tx_thread_create( &stThreadSensorNode, 
@@ -76,31 +75,41 @@ void IMU_SensorNodeDisable( void )
 void thread_sensor_node(ULONG periodMS)
 {
     uint8_t IMU_Data[8];
-    uint32_t sample_size = 0;
-    float y_sum = 0;
-    float z_sum = 0;
-    float y_avg = 0;
-    float z_avg = 0;
+    float y;
+    float z;
 
     while(true)
     {
-        // Create sum for IMU average
-        BNO055_Get_Gravity_Vec(&BNO055_Vector);
-        y_sum += BNO055_Vector.y;
-        z_sum += BNO055_Vector.z;
-        sample_size++;
-        tx_thread_sleep(BNO055_DELAY_MS);
+        // // Create sum for IMU average
+        // BNO055_Get_Gravity_Vec(&BNO055_Vector);
+        // y_sum += BNO055_Vector.y;
+        // z_sum += BNO055_Vector.z;
+        // sample_size++;
+        // tx_thread_sleep(BNO055_DELAY_MS);
 
-        // Every period, send averged IMU data
-        if( tx_time_get() % periodMS == 0)
-        {
-            y_avg = (float) y_sum / sample_size;
-            z_avg = (float) z_sum / sample_size;
-            memcpy(IMU_Data, &y_avg, sizeof(float));
-            memcpy(IMU_Data + sizeof(float), &z_avg, sizeof(float));
-            MCAN_TX(MCAN_DEBUG, SENSOR_DATA, DEV_DEPLOYMENT, IMU_Data);
+        // // Every period, send averged IMU data
+        // if( tx_time_get() % periodMS == 0)
+        // {
+        //     y_avg = (float) y_sum / sample_size;
+        //     z_avg = (float) z_sum / sample_size;
+        //     memcpy(IMU_Data, &y_avg, sizeof(float));
+        //     memcpy(IMU_Data + sizeof(float), &z_avg, sizeof(float));
+        //     MCAN_TX(MCAN_DEBUG, SENSOR_DATA, DEV_DEPLOYMENT, IMU_Data);
             
-            sample_size = y_sum = y_avg = z_sum = z_avg = 0;
-        }
+        //     sample_size = y_sum = y_avg = z_sum = z_avg = 0;
+        // }
+
+        tx_thread_sleep(500); 
+
+        BNO055_Get_Gravity_Vec(&BNO055_Vector);
+        tx_thread_sleep(1);
+        y = BNO055_Vector.y;
+        z = BNO055_Vector.z;
+
+        memcpy(IMU_Data, &y, sizeof(float));
+        memcpy(IMU_Data + sizeof(float), &z, sizeof(float));
+        MCAN_TX(MCAN_DEBUG, SENSOR_DATA, DEV_DEPLOYMENT, IMU_Data);
+        
+        tx_thread_sleep(10);
     }
 }

@@ -12,11 +12,12 @@
 static DEPLOY_COMM currentCommand = IDLE;
 
 // Deploy Thread
-#define THREAD_DEPLOY_STACK_SIZE 512
+#define THREAD_DEPLOY_STACK_SIZE 2048
 static TX_THREAD stThreadDeploy;
 static uint8_t auThreadDeployStack[THREAD_DEPLOY_STACK_SIZE];
 static const uint16_t THREAD_DEPLOY_DELAY_MS = 10;
 static const uint16_t SENSOR_NODE_EN_DELAY_MS = 5000;
+static const float GRAV_THRESHOLD = 0.1;
 
 // Motor Variables
 extern TIM_HandleTypeDef hACT_Tim;
@@ -26,8 +27,8 @@ static const uint16_t LS_DELAY_MS = 5000;
 static const uint16_t DIRTBRAKE_DELAY_MS = 5000;
 
 // Limit Switch Variables
-static bool ArmRetractLS_Pressed = false;
-static bool ArmDeployLS_Pressed  = false;
+static volatile bool ArmRetractLS_Handled = false;
+static volatile bool ArmDeployLS_Handled  = false;
 
 static volatile bool newCommand = false;
 
@@ -63,8 +64,8 @@ bool DeploymentInit(void)
                       TX_AUTO_START);
 
     // Request sensor node IMU data
-    tx_thread_sleep(SENSOR_NODE_EN_DELAY_MS);
-    MCAN_TX(MCAN_DEBUG, SENSOR_DATA, DEV_MAIN_COMPUTE, (uint8_t[8]) {1, 0, 0, 0, 0, 0, 0, 0});
+    // tx_thread_sleep(SENSOR_NODE_EN_DELAY_MS);
+    // MCAN_TX(MCAN_DEBUG, SENSOR_DATA, DEV_MAIN_COMPUTE, (uint8_t[8]) {1, 0, 0, 0, 0, 0, 0, 0});
 
     return true;
 }
@@ -127,8 +128,17 @@ void BayOrient(void)
             break;
     }
 
-    // Rotate until direction changes
-    while(initialDir == IMU_GetDirBias());
+    while(true)
+    {
+        // Check 1G in Z axis 
+        if(IMU_CheckZ(GRAV_THRESHOLD))
+            break;
+
+        // Detect change in direction
+        if(initialDir != IMU_GetDirBias())
+            break;
+    }
+
     BayStop();
 }
 
@@ -146,7 +156,6 @@ void ArmDeploy(void)
 
 void ArmDeployLS(void)
 {
-    ArmDeployLS_Pressed = true;
     if(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin))
     {
         ArmRetract();
@@ -154,7 +163,7 @@ void ArmDeployLS(void)
         while(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin));
         ArmStop(); 
     }
-    ArmDeployLS_Pressed = false;
+    ArmDeployLS_Handled = true;
 }
 
 void ArmRetract(void)
@@ -170,7 +179,6 @@ void ArmRetract(void)
 
 void ArmRetractLS(void)
 {
-    ArmRetractLS_Pressed = true;
     if(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin))
     {
         ArmDeploy();
@@ -178,7 +186,7 @@ void ArmRetractLS(void)
         while(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin));
         ArmStop();
     }
-    ArmRetractLS_Pressed = false;
+    ArmRetractLS_Handled = true;
 }
 
 void ArmStop(void)
@@ -193,11 +201,11 @@ void ArmOrient(void)
     // TEMP rely on LS until IMU data is implemented
     ArmDeploy();
 
-    // Wait for limit switch to be pressed
-    while(!ArmRetractLS_Pressed);
+    // // Wait for limit switch to be pressed
+    // while(!ArmRetractLS_Pressed);
 
-    // Wait for limit switch to be unpressed
-    while(ArmRetractLS_Pressed);
+    // // Wait for limit switch to be unpressed
+    // while(ArmRetractLS_Pressed);
 
     return;
 }
@@ -218,6 +226,8 @@ void FullDeploy(void)
 void FullRetract(void)
 {
     ArmRetract();
+    while(!ArmRetractLS_Handled);
+    ArmRetractLS_Handled = false;
     DirtbrakeRetract();
 }
 
@@ -306,9 +316,7 @@ void DeployCommExe(DEPLOY_COMM command)
     newCommand = true;
 }
 
-// return true if busy
 bool DeployCommBusy(void)
 {
-    // If still processing, newCommand is true
     return newCommand;
 }

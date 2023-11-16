@@ -15,8 +15,8 @@ TIM_HandleTypeDef hBayDC_Tim;
 TIM_HandleTypeDef hArmDC_Tim;
 TIM_HandleTypeDef hACT_Tim;
 
-static const uint16_t BSP_CLK_DELAY_MS = 100;
-static const uint16_t BSP_DELAY_MS = 100;
+static const uint16_t BSP_CLK_DELAY_MS = 500;
+static const uint16_t BSP_DELAY_MS = 1000;
 
 void BSP_Init(void)
 {

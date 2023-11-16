@@ -127,7 +127,7 @@ Actuator_Error Drive_Actuator(const Actuator_Instance_t* act, const uint8_t leng
     /* Set New PWM Compare Value */
     __HAL_TIM_SET_COMPARE(act->Act_Timer, act->Channel, mappedLength);
 
-    HAL_TIM_GenerateEvent(act->Act_Timer, TIM_EventSource_Update);      //Sync Counter
+    // HAL_TIM_GenerateEvent(act->Act_Timer, TIM_EventSource_Update);      //Sync Counter
 
     return ACTUATOR_OK;
 }

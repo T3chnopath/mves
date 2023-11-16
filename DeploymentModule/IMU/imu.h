@@ -12,5 +12,6 @@ typedef enum
 
 void IMU_Update(uint8_t * data);
 BAY_DIR IMU_GetDirBias( void );
+bool IMU_CheckZ(float threshold);
 
 #endif

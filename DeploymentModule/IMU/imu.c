@@ -2,7 +2,7 @@
 #include <string.h>
 #include "imu.h"
 
-static const float ACCEL_THRESHHOLD = 0.1;
+static const float ACCEL_GRAV = 9.81;
 
 // Bay IMU data
 static float bayAccelY = 0;
@@ -35,18 +35,50 @@ BAY_DIR IMU_GetDirBias( void )
     */
 
     // Quadrant 1
-    if( _bayAccelZ > 0 && _bayAccelY > 0)
+    // if( _bayAccelZ > 0 && _bayAccelY > 0)
+    // {
+    //     return CW;
+    // }
+
+    // // Quadrant 2
+    // else if ( _bayAccelZ > 0 && _bayAccelY < 0)
+    // {
+    //     return CCW;
+    // }
+
+    // // Quadrant 3
+    // else if ( _bayAccelZ < 0 && _bayAccelY < 0)
+    // {
+    //     return CCW;
+    // }
+
+    // // Quadrant 4, default case
+    // else
+    // {
+    //     return CW;
+    // }
+
+
+    if( _bayAccelY > 0) 
+    {
         return CW;
+    }
 
-    // Quadrant 2
-    else if ( _bayAccelZ < 0 && _bayAccelY > 0)
-        return CCW;
-
-    // Quadrant 3
-    else if ( _bayAccelZ > 0 && _bayAccelY < 0)
-        return CCW;
-
-    // Quadrant 4, default case
     else
-        return CW;
+    {
+        return CCW;
+    }
+}
+
+// Return true if Z is oriented upward
+bool IMU_CheckZ(float threshold)
+{
+    float _bayAccelZ = bayAccelZ;
+
+    if( _bayAccelZ > (ACCEL_GRAV - threshold) && _bayAccelZ < (ACCEL_GRAV + threshold))
+    {
+        return true;
+    }
+
+    return false;
 }
