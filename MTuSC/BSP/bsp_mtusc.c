@@ -109,9 +109,9 @@ static void _BSP_FDCAN_Init(void)
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
     PeriphClkInitStruct.PLL2.PLL2Source = RCC_PLL2_SOURCE_HSE;
     PeriphClkInitStruct.PLL2.PLL2M = 2;
-    PeriphClkInitStruct.PLL2.PLL2N = 16;
+    PeriphClkInitStruct.PLL2.PLL2N = 32;
     PeriphClkInitStruct.PLL2.PLL2P = 2;
-    PeriphClkInitStruct.PLL2.PLL2Q = 6;
+    PeriphClkInitStruct.PLL2.PLL2Q = 12;
     PeriphClkInitStruct.PLL2.PLL2R = 2;
     PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2_VCIRANGE_3;
     PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2_VCORANGE_WIDE;
@@ -126,15 +126,14 @@ static void _BSP_FDCAN_Init(void)
 
     // Peripheral Clock Enable 
     __HAL_RCC_FDCAN_CLK_ENABLE();
-    // GPIO_PortClkEnable(FDCAN_TX_Port);
-    // GPIO_PortClkEnable(FDCAN_RX_Port);
-    __HAL_RCC_GPIOB_CLK_ENABLE();
+    GPIO_PortClkEnable(FDCAN_TX_Port);
+    GPIO_PortClkEnable(FDCAN_RX_Port);
 
 
     // FDCAN GPIO Configuration
-    GPIO_InitStruct.Pin = FDCAN_TX_Pin | FDCAN_RX_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pin   = FDCAN_TX_Pin | FDCAN_RX_Pin;
+    GPIO_InitStruct.Mode  = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull  = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 
     // Select alternate function based on FDCAN interface
@@ -152,117 +151,128 @@ static void _BSP_FDCAN_Init(void)
 #endif 
 }
 
-static void _BSP_I2C_Init(void){
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};    
+static void _BSP_I2C_Init(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};    
 
-  /* I2C1 clock enable */
-  __HAL_RCC_I2C1_CLK_ENABLE();
+    // I2C1 Clock Enable 
+    __HAL_RCC_I2C1_CLK_ENABLE();
 
-  /* I2C1 Init */
-  MTuSC_I2C.Instance = I2C1;
-  MTuSC_I2C.Init.Timing = 0x2080319C;
-  MTuSC_I2C.Init.OwnAddress1 = 0;
-  MTuSC_I2C.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  MTuSC_I2C.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  MTuSC_I2C.Init.OwnAddress2 = 0;
-  MTuSC_I2C.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  MTuSC_I2C.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  MTuSC_I2C.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&MTuSC_I2C) != HAL_OK)
-  {
-    _BSP_ErrorHandler();
-  }
-  
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&MTuSC_I2C, I2C_ANALOGFILTER_DISABLE) != HAL_OK)
-  {
-    _BSP_ErrorHandler();
-  }
-  
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&MTuSC_I2C, 0) != HAL_OK)
-  {
-    _BSP_ErrorHandler();
-  }
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C1;
-  PeriphClkInitStruct.I2c1ClockSelection   = RCC_I2C1CLKSOURCE_PCLK1;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-  {
-    _BSP_ErrorHandler();
-  }
-  
-  GPIO_InitStruct.Pin = I2C_SDA_Pin|I2C_SCL_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
-  
-  //Enable I2C GPIO RCC Clock
-  __HAL_RCC_GPIOB_CLK_ENABLE();
+    // I2C1 Init 
+    MTuSC_I2C.Instance              = I2C1;
+    MTuSC_I2C.Init.Timing           = 0x2080319C;
+    MTuSC_I2C.Init.OwnAddress1      = 0;
+    MTuSC_I2C.Init.AddressingMode   = I2C_ADDRESSINGMODE_7BIT;
+    MTuSC_I2C.Init.DualAddressMode  = I2C_DUALADDRESS_DISABLE;
+    MTuSC_I2C.Init.OwnAddress2      = 0;
+    MTuSC_I2C.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+    MTuSC_I2C.Init.GeneralCallMode  = I2C_GENERALCALL_DISABLE;
+    MTuSC_I2C.Init.NoStretchMode    = I2C_NOSTRETCH_DISABLE;
+    
+    if (HAL_I2C_Init(&MTuSC_I2C) != HAL_OK)
+    {
+        _BSP_ErrorHandler();
+    }
+    
+    // Configure Analog Filter 
+    if (HAL_I2CEx_ConfigAnalogFilter(&MTuSC_I2C, I2C_ANALOGFILTER_DISABLE) != HAL_OK)
+    {
+        _BSP_ErrorHandler();
+    }
+    
+    // Configure Digital Filter 
+    if (HAL_I2CEx_ConfigDigitalFilter(&MTuSC_I2C, 0) != HAL_OK)
+    {
+        _BSP_ErrorHandler();
+    }
 
-  HAL_GPIO_Init(I2C_SDA_Port, &GPIO_InitStruct);
-  HAL_GPIO_Init(I2C_SCL_Port, &GPIO_InitStruct);
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C1;
+    PeriphClkInitStruct.I2c1ClockSelection   = RCC_I2C1CLKSOURCE_PCLK1;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+        _BSP_ErrorHandler();
+    }
+    
+    GPIO_InitStruct.Pin       = I2C_SDA_Pin|I2C_SCL_Pin;
+    GPIO_InitStruct.Mode      = GPIO_MODE_AF_OD;
+    GPIO_InitStruct.Pull      = GPIO_NOPULL;
+    GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
+    
+    //Enable I2C GPIO RCC Clock
+    GPIO_PortClkEnable(I2C_SDA_Port);
+    GPIO_PortClkEnable(I2C_SCL_Port);
+
+    HAL_GPIO_Init(I2C_SDA_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(I2C_SCL_Port, &GPIO_InitStruct);
 }
 
-static void _BSP_UART_Init(void){
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};    
+static void _BSP_UART_Init(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};    
 
-  /* UART4 clock enable */
-  __HAL_RCC_UART4_CLK_ENABLE();
+    // UART4 CLK Enable 
+#ifdef UART4_EN
+    __HAL_RCC_UART4_CLK_ENABLE();
+#endif 
 
-  MTuSC_UART.Instance = UART4;
-  MTuSC_UART.Init.BaudRate = XBEE_UART_BAUDRATE;
-  MTuSC_UART.Init.WordLength = UART_WORDLENGTH_8B;
-  MTuSC_UART.Init.StopBits = UART_STOPBITS_1;
-  MTuSC_UART.Init.Parity = UART_PARITY_NONE;
-  MTuSC_UART.Init.Mode = UART_MODE_TX_RX;
-  MTuSC_UART.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  MTuSC_UART.Init.OverSampling = UART_OVERSAMPLING_16;
-  MTuSC_UART.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  MTuSC_UART.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  MTuSC_UART.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&MTuSC_UART) != HAL_OK)
-  {
-    _BSP_ErrorHandler();
-  }
-  if (HAL_UARTEx_SetTxFifoThreshold(&MTuSC_UART, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    _BSP_ErrorHandler();
-  }
-  if (HAL_UARTEx_SetRxFifoThreshold(&MTuSC_UART, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    _BSP_ErrorHandler();
-  }
-  if (HAL_UARTEx_DisableFifoMode(&MTuSC_UART) != HAL_OK)
-  {
-    _BSP_ErrorHandler();
-  }
+#ifdef UART4_EN
+    MTuSC_UART.Instance            = UART4;
+#endif
+    MTuSC_UART.Init.BaudRate       = UART_BAUDRATE;
+    MTuSC_UART.Init.WordLength     = UART_WORDLENGTH_8B;
+    MTuSC_UART.Init.StopBits       = UART_STOPBITS_1;
+    MTuSC_UART.Init.Parity         = UART_PARITY_NONE;
+    MTuSC_UART.Init.Mode           = UART_MODE_TX_RX;
+    MTuSC_UART.Init.HwFlowCtl      = UART_HWCONTROL_NONE;
+    MTuSC_UART.Init.OverSampling   = UART_OVERSAMPLING_16;
+    MTuSC_UART.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+    MTuSC_UART.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+    MTuSC_UART.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_UART4;
-  PeriphClkInitStruct.Uart4ClockSelection = RCC_UART4CLKSOURCE_PCLK1;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-  {
-    _BSP_ErrorHandler();
-  }
+    if (HAL_UART_Init(&MTuSC_UART) != HAL_OK)
+    {
+        _BSP_ErrorHandler();
+    }
+    if (HAL_UARTEx_SetTxFifoThreshold(&MTuSC_UART, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+    {
+        _BSP_ErrorHandler();
+    }
+    if (HAL_UARTEx_SetRxFifoThreshold(&MTuSC_UART, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+    {
+        _BSP_ErrorHandler();
+    }
+    if (HAL_UARTEx_DisableFifoMode(&MTuSC_UART) != HAL_OK)
+    {
+        _BSP_ErrorHandler();
+    }
 
-  //Enable GPIOA Clock
-  __HAL_RCC_GPIOA_CLK_ENABLE();
+#ifdef UART4_EN
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_UART4;
+    PeriphClkInitStruct.Uart4ClockSelection = RCC_UART4CLKSOURCE_PCLK1;
+#endif
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+        _BSP_ErrorHandler();
+    }
 
-  /**UART4 GPIO Configuration
-  PA0     ------> UART4_TX
-  PA1     ------> UART4_RX
-  */
-  GPIO_InitStruct.Pin = XBEE_UART_TX_Pin|XBEE_UART_RX_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
-  HAL_GPIO_Init(XBEE_UART_TX_Port, &GPIO_InitStruct);
-  HAL_GPIO_Init(XBEE_UART_TX_Port, &GPIO_InitStruct);
+    //Enable GPIOA Clock
+    GPIO_PortClkEnable(UART_RX_Port);
+    GPIO_PortClkEnable(UART_TX_Port);
+
+
+    // UART4 GPIO Configuration
+    GPIO_InitStruct.Pin   = UART_TX_Pin|UART_RX_Pin;
+    GPIO_InitStruct.Mode  = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull  = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+#ifdef UART4_EN
+    GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
+#endif
+    HAL_GPIO_Init(UART_TX_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(UART_TX_Port, &GPIO_InitStruct);
 }
 
 static void _BSP_ErrorHandler(void)
