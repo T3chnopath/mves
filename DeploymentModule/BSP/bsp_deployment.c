@@ -163,18 +163,102 @@ static void _BSP_FDCAN_Init(void)
 
 static void _BSP_BAY_DC_Init(void)
 {
+    
     GPIO_InitTypeDef GPIO_InitStruct = {0};
+    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+    TIM_OC_InitTypeDef sConfigOC = {0};
+    TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
 
+    /* Timer Initilization */
+    __HAL_RCC_TIM1_CLK_ENABLE();
+
+    hBayDC_Tim.Instance = BAY_DC_TIM;
+    hBayDC_Tim.Init.Prescaler = 0;
+    hBayDC_Tim.Init.CounterMode = TIM_COUNTERMODE_UP;
+    hBayDC_Tim.Init.Period = BAY_DC_PERIOD;
+    hBayDC_Tim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    hBayDC_Tim.Init.RepetitionCounter = 0;
+    hBayDC_Tim.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&hBayDC_Tim) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    if (HAL_TIM_ConfigClockSource(&hBayDC_Tim, &sClockSourceConfig) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    if (HAL_TIM_PWM_Init(&hBayDC_Tim) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if (HAL_TIMEx_MasterConfigSynchronization(&hBayDC_Tim, &sMasterConfig) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = 0;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+    sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+    if (HAL_TIM_PWM_ConfigChannel(&hBayDC_Tim, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    if (HAL_TIM_PWM_ConfigChannel(&hBayDC_Tim, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+    sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+    sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+    sBreakDeadTimeConfig.DeadTime = 0;
+    sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+    sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+    sBreakDeadTimeConfig.BreakFilter = 0;
+    sBreakDeadTimeConfig.BreakAFMode = TIM_BREAK_AFMODE_INPUT;
+    sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
+    sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
+    sBreakDeadTimeConfig.Break2Filter = 0;
+    sBreakDeadTimeConfig.Break2AFMode = TIM_BREAK_AFMODE_INPUT;
+    sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+    if (HAL_TIMEx_ConfigBreakDeadTime(&hBayDC_Tim, &sBreakDeadTimeConfig) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+
+    /* GPIO Initialization */
     GPIO_PortClkEnable(BAY_DC_Port1);
     GPIO_PortClkEnable(BAY_DC_Port2);
 
-    // Pin Configurations 
-    GPIO_InitStruct.Pin = BAY_DC_Pin1 | BAY_DC_Pin2;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    GPIO_InitStruct.Pin = BAY_DC_Pin1;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
     HAL_GPIO_Init(BAY_DC_Port1, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = BAY_DC_Pin2;
     HAL_GPIO_Init(BAY_DC_Port2, &GPIO_InitStruct);
+
+    // GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    // GPIO_PortClkEnable(BAY_DC_Port1);
+    // GPIO_PortClkEnable(BAY_DC_Port2);
+
+    // // Pin Configurations 
+    // GPIO_InitStruct.Pin = BAY_DC_Pin1 | BAY_DC_Pin2;
+    // GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    // GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    // HAL_GPIO_Init(BAY_DC_Port1, &GPIO_InitStruct);
+    // HAL_GPIO_Init(BAY_DC_Port2, &GPIO_InitStruct);
 }
 
 static void _BSP_ARM_DC_Init(void)

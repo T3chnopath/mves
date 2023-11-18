@@ -55,8 +55,8 @@
 // extern TIM_HandleTypeDef hArmDC_Tim;
 extern TIM_HandleTypeDef hACT_Tim;
 
-// #define BAY_DC_TIM      TIM1
-// #define BAY_DC_PERIOD   (25000 - 1)
+#define BAY_DC_TIM          TIM1
+#define BAY_DC_PERIOD       (25000 - 1)
 #define BAY_DC_Pin1         GPIO_PIN_9
 #define BAY_DC_Port1        GPIOA
 #define BAY_DC_Pin2         GPIO_PIN_10
