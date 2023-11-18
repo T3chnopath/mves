@@ -17,7 +17,7 @@ static TX_THREAD stThreadBlink;
 static uint8_t auThreadBlinkStack[THREAD_BLINK_STACK_SIZE];
 void thread_blink(ULONG ctx);
 
-static const uint16_t LED_BLINK_TIME = 1000;
+static const uint16_t LED_BLINK_TIME_MS = 1000;
 static sMCAN_Message mcanRxMessage = { 0 };
 
 int main(void)
@@ -69,7 +69,7 @@ void thread_blink(ULONG ctx)
 {
     while(true)
     {
-        tx_thread_sleep(LED_BLINK_TIME);
+        tx_thread_sleep(LED_BLINK_TIME_MS);
         HAL_GPIO_TogglePin(LED0_GREEN_GPIO_Port, LED0_GREEN_Pin);
     }
 }
