@@ -1,5 +1,6 @@
 #include "bsp_mtusc.h"
 #include "utility.h"
+#include "tx_api.h"
 
 static void _BSP_SystemClockConfig(void);
 static void _BSP_ErrorHandler(void);
@@ -12,15 +13,21 @@ static void _BSP_UART_Init(void);
 I2C_HandleTypeDef   MTuSC_I2C;
 UART_HandleTypeDef  MTuSC_UART;
 
+static const uint16_t BSP_CLK_DELAY_MS = 100;
+static const uint16_t BSP_DELAY_MS = 200;
+
+
 void BSP_Init(void)
 {
     HAL_Init();
     _BSP_SystemClockConfig();
+    tx_thread_sleep(BSP_CLK_DELAY_MS);
 
     _BSP_GPIO_Init();
     _BSP_FDCAN_Init();
     _BSP_I2C_Init();
     _BSP_UART_Init();   
+    tx_thread_sleep(BSP_DELAY_MS);
 }
 
 static void _BSP_SystemClockConfig(void)
