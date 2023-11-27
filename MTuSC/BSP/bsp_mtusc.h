@@ -15,14 +15,14 @@
 #define UART4_EN
 
 // General in Definitions
-#define LED_RED_Pin           GPIO_PIN_5
-#define LED_RED_GPIO_Port     GPIOB
+#define LED_RED_Pin           GPIO_PIN_0
+#define LED_RED_GPIO_Port     GPIOD
 
-#define LED_GREEN_Pin         GPIO_PIN_6
-#define LED_GREEN_GPIO_Port   GPIOB
+#define LED_GREEN_Pin         GPIO_PIN_1
+#define LED_GREEN_GPIO_Port   GPIOD
 
-#define LED_BLUE_Pin          GPIO_PIN_7
-#define LED_BLUE_GPIO_Port    GPIOB
+#define LED_BLUE_Pin          GPIO_PIN_2
+#define LED_BLUE_GPIO_Port    GPIOD
 
 #define FDCAN_STDBY_Pin       GPIO_PIN_10
 #define FDCAN_STDBY_GPIO_Port GPIOA

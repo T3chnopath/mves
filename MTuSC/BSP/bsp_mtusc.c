@@ -1,6 +1,8 @@
+#include <stdbool.h>
 #include "bsp_mtusc.h"
 #include "utility.h"
 #include "tx_api.h"
+#include "bno055.h"
 
 static void _BSP_SystemClockConfig(void);
 static void _BSP_ErrorHandler(void);
@@ -8,6 +10,7 @@ static void _BSP_GPIO_Init(void);
 static void _BSP_FDCAN_Init(void);
 static void _BSP_I2C_Init(void);
 static void _BSP_UART_Init(void);
+static bool _BSP_IMU_Init(void);
 
 // Peripheral Instance
 I2C_HandleTypeDef   MTuSC_I2C;
@@ -26,7 +29,8 @@ void BSP_Init(void)
     _BSP_GPIO_Init();
     _BSP_FDCAN_Init();
     _BSP_I2C_Init();
-    _BSP_UART_Init();   
+    _BSP_UART_Init(); 
+    _BSP_IMU_Init();
     tx_thread_sleep(BSP_DELAY_MS);
 }
 
@@ -85,25 +89,27 @@ static void _BSP_GPIO_Init(void)
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
     GPIO_PortClkEnable(LED_RED_GPIO_Port);
-    HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
-    GPIO_InitStruct.Pin = LED_RED_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_SET);
+    GPIO_InitStruct.Pin   =  LED_RED_Pin;
+    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull  = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(LED_RED_GPIO_Port, &GPIO_InitStruct);
 
     GPIO_PortClkEnable(LED_GREEN_GPIO_Port);
-    HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, GPIO_PIN_SET);
     GPIO_InitStruct.Pin = LED_GREEN_Pin;
     HAL_GPIO_Init(LED_GREEN_GPIO_Port, &GPIO_InitStruct);
 
     GPIO_PortClkEnable(LED_BLUE_GPIO_Port);
-    HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin, GPIO_PIN_SET);
     GPIO_InitStruct.Pin = LED_BLUE_Pin;
+    HAL_GPIO_Init(LED_BLUE_GPIO_Port, &GPIO_InitStruct);
 
     GPIO_PortClkEnable(FDCAN_STDBY_GPIO_Port);
     HAL_GPIO_WritePin(FDCAN_STDBY_GPIO_Port, FDCAN_STDBY_Pin, GPIO_PIN_RESET);
-    GPIO_InitStruct.Pin = FDCAN_STDBY_Pin;
+    GPIO_InitStruct.Pin  = FDCAN_STDBY_Pin;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     HAL_GPIO_Init(FDCAN_STDBY_GPIO_Port, &GPIO_InitStruct);
 }
 
@@ -280,6 +286,28 @@ static void _BSP_UART_Init(void)
 #endif
     HAL_GPIO_Init(UART_TX_Port, &GPIO_InitStruct);
     HAL_GPIO_Init(UART_TX_Port, &GPIO_InitStruct);
+}
+
+bool _BSP_IMU_Init(void)
+{
+    /* Custom Axis */
+    BNO055_AXIS_CONFIG_t axis_config = {.x = BNO055_Z_AXIS,
+                                        .y = BNO055_Y_AXIS,
+                                        .z = BNO055_X_AXIS};
+
+    /* Required Boot-up Time for BNO055 */
+    tx_thread_sleep(700);
+
+    /* BNO055 Init */
+    BNO055_I2C_Mount(&MTuSC_I2C);
+    if (BNO055_Init() != BNO055_SUCCESS)
+        return false;
+
+    if (BNO055_Set_OP_Mode(NDOF) != BNO055_SUCCESS)
+        return false;
+
+    if (BNO055_Set_Axis(&axis_config) != BNO055_SUCCESS)
+        return false;
 }
 
 static void _BSP_ErrorHandler(void)
