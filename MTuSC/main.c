@@ -10,11 +10,11 @@ static BNO055_Axis_Vec_t BNO055_Vector;
 extern UART_HandleTypeDef  MTuSC_UART;
 
 #define RX_BUF_SIZE 10
-uint8_t rx_buf[RX_BUF_SIZE] = {'A','B','C'};
+uint8_t rx_buf[RX_BUF_SIZE];
 
 // Main Thread
-#define THREAD_MAIN_STACK_SIZE 512
-static const uint16_t THREAD_MAIN_DELAY_MS = 1000;
+#define THREAD_MAIN_STACK_SIZE 1024
+static const uint16_t THREAD_MAIN_DELAY_MS = 10;
 static TX_THREAD stThreadMain;
 static uint8_t auThreadMainStack[THREAD_MAIN_STACK_SIZE];
 void thread_main(ULONG ctx);
@@ -63,11 +63,11 @@ void thread_main(ULONG ctx)
 
     while(true)
     {
-        BNO055_Get_Gravity_Vec(&BNO055_Vector);
-        
         // Echo UART messages
-        // if( HAL_UART_Receive(&MTuSC_UART, rx_buf, RX_BUF_SIZE, 100) == HAL_OK)
-        HAL_UART_Transmit(&MTuSC_UART, rx_buf, RX_BUF_SIZE, 100);
+        if( HAL_UART_Receive(&MTuSC_UART, rx_buf, sizeof(char), HAL_MAX_DELAY) == HAL_OK)
+        {
+            HAL_UART_Transmit(&MTuSC_UART, rx_buf, sizeof(char), HAL_MAX_DELAY);
+        }
 
         tx_thread_sleep(THREAD_MAIN_DELAY_MS);
     }

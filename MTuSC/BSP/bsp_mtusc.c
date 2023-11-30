@@ -285,7 +285,7 @@ static void _BSP_UART_Init(void)
     GPIO_InitStruct.Alternate = GPIO_AF8_UART4;
 #endif
     HAL_GPIO_Init(UART_TX_Port, &GPIO_InitStruct);
-    HAL_GPIO_Init(UART_TX_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(UART_RX_Port, &GPIO_InitStruct);
 }
 
 bool _BSP_IMU_Init(void)
