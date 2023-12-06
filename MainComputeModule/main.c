@@ -3,6 +3,7 @@
 #include "mcan.h"
 #include "bno055.h"
 #include "maincompute.h"
+#include "sensor_nodes.h"
 
 // Main Thread
 #define THREAD_MAIN_STACK_SIZE 512
@@ -52,13 +53,16 @@ void tx_application_define(void *first_unused_memory)
 
 void thread_main(ULONG ctx)
 {
-    // Initialize BSP and App layer
+    // Initialize BSP
     BSP_Init();
     
-    MCAN_Init( FDCAN1, DEV_MAIN_COMPUTE, &mcanRxMessage );
+    // Initialize App Layer
+    MCAN_Init( FDCAN1, DEV_COMPUTE, MCAN_ENABLE );
+    IMU_Init();
 
-    IMU_SensorNodeInit( DEV_DEPLOYMENT, 500);
-
+    // Register node that sends out IMU data over CAN every second
+    SensorNodeRegister( DEV_ALL, 1000, IMU_Update, SENSOR_NODE_ENABLE);
+    
     while(true)
     {
         tx_thread_sleep(THREAD_MAIN_DELAY_MS);
@@ -76,142 +80,5 @@ void thread_blink(ULONG ctx)
 
 void MCAN_Rx_Handler( void )
 {   
-    // If sensor data request from Deployment Board
-    if(mcanRxMessage.mcanID.MCAN_CAT == SENSOR_DATA && mcanRxMessage.mcanID.MCAN_TX_Device == DEV_DEPLOYMENT)
-    {
-        if(mcanRxMessage.mcanData[0] == 1)
-        {
-            IMU_SensorNodeEnable();
-        }   
-        else if(mcanRxMessage.mcanData[0] == 0)
-        {
-            IMU_SensorNodeDisable();
-        }
-    }
+
 }
-
-
-// extern I2C_HandleTypeDef   MTuSC_I2C;
-// BNO055_Axis_Vec_t          BNO055_Vector;
-
-// void thread_main(ULONG ctx);
-
-// typedef enum{
-//     CCW,
-//     CW
-// } ORIENTATION_DIR;
-
-// ORIENTATION_DIR initialDir = CW;
-// float curr_reading = 0.0;
-
-// void average(float* y_avg, float* z_avg, uint8_t sample_size){
-
-//     *y_avg = 0;
-//     *z_avg = 0;
-
-//     for(uint8_t i = 0; i < sample_size; i++){
-//         BNO055_Get_Gravity_Vec(&BNO055_Vector);
-//         *y_avg += BNO055_Vector.y;
-//         *z_avg += BNO055_Vector.z;
-//         HAL_Delay(12);
-//     }
-//     *y_avg /= (float)sample_size;
-//     *z_avg /= (float)sample_size;
-// }
-
-// ORIENTATION_DIR getDir(float y){
-//     return (y > 0) ? CCW : CW;     
-// }
-
-// int main(void)
-// {
-//     /* Initialize BSP */
-//     BSP_Init();
-
-//     MCAN_Init( FDCAN1, DEV_MAIN_COMPUTE, &mcanRxMessage );
-
-//     tx_kernel_enter();
-//    }
-
-// void tx_application_define(void *first_unused_memory)
-// {
-//     // Create main thread
-//     tx_thread_create( &stThreadMain, 
-//                      "thread_main", 
-//                       thread_main, 
-//                       0, 
-//                       auThreadMainStack, 
-//                       THREAD_MAIN_STACK_SIZE, 
-//                       4,
-//                       4, 
-//                       0, // Time slicing unused if all threads have unique priorities     
-//                       TX_AUTO_START);
-// }
-
-// void thread_main(ULONG ctx)
-// {
-//     MCAN_SetEnableIT(MCAN_ENABLE);
-
-//     /* Custom Axis */
-//     BNO055_AXIS_CONFIG_t axis_config = {.x = BNO055_Z_AXIS, 
-//                                         .y = BNO055_Y_AXIS, 
-//                                         .z = BNO055_X_AXIS};
-
-//     /* Required Boot-up Time for BNO055 */
-//     tx_thread_sleep(700);
-    
-//     /* BNO055 Init */
-//     BNO055_I2C_Mount(&MTuSC_I2C);
-//     if(BNO055_Init() != BNO055_SUCCESS)
-//         while(1);
-//     if(BNO055_Set_OP_Mode(NDOF) != BNO055_SUCCESS)
-//         while(1);
-//     if(BNO055_Set_Axis(&axis_config) != BNO055_SUCCESS)
-//         while(1);
-
-//     float y_avg = 0.0;
-//     float z_avg = 0.0;
-
-//     while(true)
-//     {
-    
-//         average(&y_avg, &z_avg, 100);
-
-//         initialDir = getDir(y_avg);
-
-//         //Drive_Motor(dir);
-//         HAL_GPIO_WritePin(LED0_GREEN_GPIO_Port, LED0_GREEN_Pin, GPIO_PIN_RESET);
-
-//         curr_reading = 9.81 - z_avg;
-
-//         while(curr_reading > 0.01 || curr_reading < -0.01) {
-//             static uint8_t dirChangeCount = 0;
-
-//             //Grab Gravity Vector from BNO055
-//             BNO055_Get_Gravity_Vec(&BNO055_Vector);
-            
-//             //Threshold Calculation
-//             curr_reading = 9.81 - BNO055_Vector.z;
-//             if(getDir(BNO055_Vector.y) != initialDir) {
-//                 dirChangeCount++;
-//                 if (dirChangeCount > 7 && BNO055_Vector.z > 0) {
-//                     break;
-//                 }
-//             }
-//             else {
-//                 dirChangeCount = 0;
-//             }
-//             tx_thread_sleep(100);
-//         }
-//         //Stop_Motor();
-//         HAL_GPIO_WritePin(LED0_GREEN_GPIO_Port, LED0_GREEN_Pin, GPIO_PIN_SET);
-
-//         while(1);
-
-//     }
-// }
-
-// void MCAN_Rx_Handler( void )
-// {
-    
-// }

@@ -38,8 +38,8 @@ void SensorNodeRegister( MCAN_DEV rxDevice, uint16_t nodePeriod_MS, void (*senso
         0, 
         auThreadSensorNodeStack, 
         THREAD_SENSOR_NODE_STACK_SIZE, 
-        3,
-        3, 
+        5,
+        5, 
         0,  
         TX_AUTO_START);
 }
