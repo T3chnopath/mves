@@ -7,7 +7,7 @@
 #define ONE_POINT_FIVE_MS_PERCENTAGE    (0.075f)
 #define MAX_COUNTER_SPEED_PERCENTAGE    (0.086f)
 #define SAMPLE_CNT                      (15U)
-#define PID_Kp                          (0.025f)      
+#define PID_Kp                          (0.035f)      
 #define PID_Ki                          (0.00025f)
 #define INTEGRAL_CAP                    (200.0)
 #define SERVO_SPEED_OFFSET              (30.0)
@@ -18,7 +18,7 @@
 #define ERROR_THRESHOLD                 (1.2)
 #define STEADY_STATE_CNT_THRES          (1000)
 #define INITIAL_ANGLE_OFFSET            (8)
-#define INTEGRAL_RESET_THRESHOLD        (1000)
+#define INTEGRAL_RESET_THRESHOLD        (10000)
 
 //Local Scope Typedef
 typedef enum{

@@ -98,10 +98,10 @@ void thread_main(ULONG ctx)
 {
     BSP_Init();
     MCAN_Init( FDCAN1, DEV_ALL, MCAN_ENABLE);
-    
-    ConsoleInit(&ConsoleUart);
+   
     ConsoleRegisterComm(&_commRotateServo);
-
+    ConsoleInit(&ConsoleUart);
+    
     cServoConfig.feedbackFreq = 910;
     cServoConfig.minAngle = 0;
     cServoConfig.maxAngle = 360;
@@ -115,18 +115,18 @@ void thread_main(ULONG ctx)
     cServoInstance.ICTimerChannel = FEEDBACK_IC_CHANNEL;
 
     CONT_Servo_Init(&cServoInstance);
-
+    tx_thread_sleep(5000);
     while(true)
     {
-        Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_CLOCKWISE);
-        _tx_thread_sleep(1000);
-        Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_COUNTERCLOCKWISE);
-        _tx_thread_sleep(1000);
-        Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_COUNTERCLOCKWISE);
-        _tx_thread_sleep(1000);
-        Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_CLOCKWISE);
-        _tx_thread_sleep(1000);
-        tx_thread_sleep(THREAD_MAIN_DELAY_MS);
+        // Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_CLOCKWISE);
+        // _tx_thread_sleep(1000);
+        // Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_COUNTERCLOCKWISE);
+        // _tx_thread_sleep(1000);
+        // Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_COUNTERCLOCKWISE);
+        // _tx_thread_sleep(1000);
+        // Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_CLOCKWISE);
+        // _tx_thread_sleep(1000);
+    tx_thread_sleep(THREAD_MAIN_DELAY_MS);
     }
 }
 
