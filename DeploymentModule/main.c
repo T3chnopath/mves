@@ -112,7 +112,7 @@ void thread_main(ULONG ctx)
 
     MCAN_QueueInit(&mcanQueue);
     
-    MCAN_Init( FDCAN1, DEV_DEPLOYMENT, &mcanRxMessage );
+    MCAN_Init( FDCAN1, DEV_DEPLOYMENT, MCAN_ENABLE );
 
     DeploymentInit();
     
@@ -130,7 +130,7 @@ void thread_main(ULONG ctx)
             }
             
              // If sensor data, update IMU
-            else if ( currMcanRxMessage.mcanID.MCAN_CAT == SENSOR_DATA )
+            else if ( currMcanRxMessage.mcanID.MCAN_CAT == CAT_SENSOR_NODE )
             {
                 IMU_Update( currMcanRxMessage.mcanData );
             }
@@ -154,16 +154,8 @@ void thread_blink(ULONG ctx)
     }
 }
 
-void MCAN_Rx_Handler( void )
+void MCAN_Rx_Handler( sMCAN_Message mcanRxMessage )
 {
-    static bool firstCall = true;
-    
     // Add latest message to queue
     MCAN_Enqueue(&mcanQueue, mcanRxMessage);
-
-    if(firstCall)
-    {
-        MCAN_TX(MCAN_DEBUG, SENSOR_DATA, DEV_MAIN_COMPUTE, (uint8_t[8]) {1, 0, 0, 0, 0, 0, 0, 0});
-        firstCall = false;
-    }
 }
