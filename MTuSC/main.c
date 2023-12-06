@@ -15,6 +15,7 @@ extern TIM_HandleTypeDef   hFeedback_Tim;
 static BNO055_Axis_Vec_t BNO055_Vector;
 static CONT_Servo_Config_t cServoConfig;
 static CONT_Servo_Instance_t cServoInstance;
+static void _rotateServo(char *argv[]);
 
 // Main Thread
 #define THREAD_MAIN_STACK_SIZE 1024
@@ -30,7 +31,38 @@ static TX_THREAD stThreadBlink;
 static uint8_t auThreadBlinkStack[THREAD_BLINK_STACK_SIZE];
 void thread_blink(ULONG ctx);
 
-extern UART_HandleTypeDef ConsoleUart;
+
+// Rotate Servo Command
+ConsoleComm_t _commRotateServo = {
+    "RotateServo",
+    "Rotate a servo X degrees, CW or CCW",
+    3,
+    _rotateServo,
+};
+
+// Static Functions
+static void _rotateServo(char *argv[])
+{
+    CSERVO_DIR servoDir; 
+
+    if( strcmp(argv[2], "CW") == 0)
+    {
+        servoDir = SERVO_CLOCKWISE;
+    }  
+    else if (strcmp(argv[2], "CCW") == 0)
+    {
+        servoDir = SERVO_COUNTERCLOCKWISE;
+    }
+    else
+    {
+        ConsolePrint("Direction must be CW or CCW! \r\n");
+        return;
+    }
+    
+    // Convert degree argument and execute
+    Drive_CONT_Servo_Angle(&cServoInstance, (int16_t) atoi(argv[1]), servoDir);
+    
+}
 
 int main(void)
 {
@@ -68,6 +100,7 @@ void thread_main(ULONG ctx)
     MCAN_Init( FDCAN1, DEV_ALL, MCAN_ENABLE);
     
     ConsoleInit(&ConsoleUart);
+    ConsoleRegisterComm(&_commRotateServo);
 
     cServoConfig.feedbackFreq = 910;
     cServoConfig.minAngle = 0;
@@ -110,3 +143,4 @@ void MCAN_RxHandler( sMCAN_Message mcanRxMessage)
 {
     tx_thread_sleep(500);
 }
+
