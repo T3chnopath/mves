@@ -4,13 +4,17 @@
 #include "bno055.h"
 #include "stm32h5xx_hal.h"
 #include "console.h"
+#include "servo.h"
 #include "tx_api.h"
 
-static BNO055_Axis_Vec_t BNO055_Vector;
 extern UART_HandleTypeDef  ConsoleUart;
+extern TIM_HandleTypeDef   hServo_Tim;
+extern TIM_HandleTypeDef   hFeedback_Tim;
 
-#define RX_BUF_SIZE 10
-uint8_t rx_buf[RX_BUF_SIZE];
+// Static variables
+static BNO055_Axis_Vec_t BNO055_Vector;
+static CONT_Servo_Config_t cServoConfig;
+static CONT_Servo_Instance_t cServoInstance;
 
 // Main Thread
 #define THREAD_MAIN_STACK_SIZE 1024
@@ -61,19 +65,34 @@ void tx_application_define(void *first_unused_memory)
 void thread_main(ULONG ctx)
 {
     BSP_Init();
-    MCAN_Init( FDCAN1, DEV_ALL );
-    MCAN_SetEnableIT(MCAN_ENABLE);
+    MCAN_Init( FDCAN1, DEV_ALL, MCAN_ENABLE);
     
     ConsoleInit(&ConsoleUart);
 
+    cServoConfig.feedbackFreq = 910;
+    cServoConfig.minAngle = 0;
+    cServoConfig.maxAngle = 360;
+    cServoConfig.feedbackMinDuty = 0.029;
+    cServoConfig.feedbackMaxDuty = 0.971;
+
+    cServoInstance.contServoTimer = &hServo_Tim;
+    cServoInstance.contServoChannel = CSERVO_TIM_CHANNEL;
+    cServoInstance.contServoConfig = &cServoConfig;
+    cServoInstance.ICTimer = &hFeedback_Tim;
+    cServoInstance.ICTimerChannel = FEEDBACK_IC_CHANNEL;
+
+    CONT_Servo_Init(&cServoInstance);
+
     while(true)
     {
-        // Echo UART messages
-        if( HAL_UART_Receive(&ConsoleUart, rx_buf, sizeof(char), HAL_MAX_DELAY) == HAL_OK)
-        {
-            HAL_UART_Transmit(&ConsoleUart, rx_buf, sizeof(char), HAL_MAX_DELAY);
-        }
-
+        Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_CLOCKWISE);
+        _tx_thread_sleep(1000);
+        Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_COUNTERCLOCKWISE);
+        _tx_thread_sleep(1000);
+        Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_COUNTERCLOCKWISE);
+        _tx_thread_sleep(1000);
+        Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_CLOCKWISE);
+        _tx_thread_sleep(1000);
         tx_thread_sleep(THREAD_MAIN_DELAY_MS);
     }
 }

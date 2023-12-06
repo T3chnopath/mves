@@ -53,6 +53,22 @@
 #define UART_BAUDRATE  921600
 #endif
 
+// Servo PWM
+#define CSERVO_TIM              TIM1
+#define CSERVO_TIM_CHANNEL      TIM_CHANNEL_3
+#define CSERVO_TIM_PRESCALER    (125-1)
+#define CSERVO_TIM_PERIOD       (40000-1)
+#define CSERVO_Port             GPIOA
+#define CSERVO_Pin              GPIO_PIN_10
+
+// Feedback IC Timer
+#define FEEDBACK_IC_TIM             TIM14
+#define FEEDBACK_IC_CHANNEL         TIM_CHANNEL_1
+#define FEEDBACK_IC_TIM_PRESCALER   (5-1)
+#define FEEDBACK_IC_TIM_PERIOD      (65536-1)
+#define FEEDBACK_IC_Port            GPIOA
+#define FEEDBACK_IC_Pin             GPIO_PIN_7
+
 // Public Functions
 void BSP_Init(void);
 

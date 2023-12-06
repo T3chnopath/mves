@@ -2,6 +2,7 @@
 #include "bsp_mtusc.h"
 #include "utility.h"
 #include "tx_api.h"
+#include "servo.h"
 #include "bno055.h"
 
 static void _BSP_SystemClockConfig(void);
@@ -11,10 +12,14 @@ static void _BSP_FDCAN_Init(void);
 static void _BSP_I2C_Init(void);
 static void _BSP_UART_Init(void);
 static bool _BSP_IMU_Init(void);
+static bool _BSP_CServo_Init(void);
+static bool _BSP_Feedback_IC_Init(void);
 
 // Peripheral Instance
 I2C_HandleTypeDef   MTuSC_I2C;
 UART_HandleTypeDef  ConsoleUart;
+TIM_HandleTypeDef   hServo_Tim;
+TIM_HandleTypeDef   hFeedback_Tim;
 
 static const uint16_t BSP_CLK_DELAY_MS = 100;
 static const uint16_t BSP_DELAY_MS = 200;
@@ -31,6 +36,8 @@ void BSP_Init(void)
     _BSP_I2C_Init();
     _BSP_UART_Init(); 
     _BSP_IMU_Init();
+    _BSP_CServo_Init();
+    _BSP_Feedback_IC_Init();
     tx_thread_sleep(BSP_DELAY_MS);
 }
 
@@ -315,6 +322,129 @@ bool _BSP_IMU_Init(void)
 
     if (BNO055_Set_Axis(&axis_config) != BNO055_SUCCESS)
         return false;
+}
+
+static bool _BSP_CServo_Init(void){
+
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+    TIM_OC_InitTypeDef sConfigOC = {0};
+    TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+
+    /* Initialize Servo PWM Timer */
+    __HAL_RCC_TIM1_CLK_ENABLE();
+
+    hServo_Tim.Instance = CSERVO_TIM;
+    hServo_Tim.Init.Prescaler = CSERVO_TIM_PRESCALER;
+    hServo_Tim.Init.CounterMode = TIM_COUNTERMODE_UP;
+    hServo_Tim.Init.Period = CSERVO_TIM_PERIOD;
+    hServo_Tim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    hServo_Tim.Init.RepetitionCounter = 0;
+    hServo_Tim.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&hServo_Tim) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    if (HAL_TIM_ConfigClockSource(&hServo_Tim, &sClockSourceConfig) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    if (HAL_TIM_PWM_Init(&hServo_Tim) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if (HAL_TIMEx_MasterConfigSynchronization(&hServo_Tim, &sMasterConfig) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = 0;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+    sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+    sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+    if (HAL_TIM_PWM_ConfigChannel(&hServo_Tim, &sConfigOC, CSERVO_TIM_CHANNEL) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+    sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+    sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+    sBreakDeadTimeConfig.DeadTime = 0;
+    sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+    sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+    sBreakDeadTimeConfig.BreakFilter = 0;
+    sBreakDeadTimeConfig.BreakAFMode = TIM_BREAK_AFMODE_INPUT;
+    sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
+    sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
+    sBreakDeadTimeConfig.Break2Filter = 0;
+    sBreakDeadTimeConfig.Break2AFMode = TIM_BREAK_AFMODE_INPUT;
+    sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+    if (HAL_TIMEx_ConfigBreakDeadTime(&hServo_Tim, &sBreakDeadTimeConfig) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+
+    /* Initialize Servo PWM GPIO */
+    GPIO_PortClkEnable(CSERVO_Port);
+    GPIO_InitStruct.Pin = CSERVO_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
+    HAL_GPIO_Init(CSERVO_Port, &GPIO_InitStruct);
+
+}
+
+static bool _BSP_Feedback_IC_Init(void){
+
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    TIM_IC_InitTypeDef sConfigIC = {0};
+
+    /* Feedback IC Timer GPIO Init */
+    GPIO_PortClkEnable(FEEDBACK_IC_Port);
+    GPIO_InitStruct.Pin = FEEDBACK_IC_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF9_TIM14;
+    HAL_GPIO_Init(FEEDBACK_IC_Port, &GPIO_InitStruct);
+
+    /* Feedback IC Timer Init */
+    __HAL_RCC_TIM14_CLK_ENABLE();
+    hFeedback_Tim.Instance = FEEDBACK_IC_TIM;
+    hFeedback_Tim.Init.Prescaler = FEEDBACK_IC_TIM_PRESCALER;
+    hFeedback_Tim.Init.CounterMode = TIM_COUNTERMODE_UP;
+    hFeedback_Tim.Init.Period = FEEDBACK_IC_TIM_PERIOD;
+    hFeedback_Tim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    hFeedback_Tim.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&hFeedback_Tim) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    if (HAL_TIM_IC_Init(&hFeedback_Tim) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+    sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_BOTHEDGE;
+    sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
+    sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
+    sConfigIC.ICFilter = 0;
+    if (HAL_TIM_IC_ConfigChannel(&hFeedback_Tim, &sConfigIC, FEEDBACK_IC_CHANNEL) != HAL_OK)
+    {
+      _BSP_ErrorHandler();
+    }
+
+    /* Interrupt Setup */
+    HAL_NVIC_SetPriority(TIM14_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(TIM14_IRQn);
+
 }
 
 static void _BSP_ErrorHandler(void)
