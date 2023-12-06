@@ -5,8 +5,7 @@
 #include <stdint.h>
 #include "mcan.h"
 
-bool IMU_SensorNodeInit( MCAN_DEV rxDevice, uint16_t periodMS);
-void IMU_SensorNodeEnable(void);
-void IMU_SensorNodeDisable(void);
+bool IMU_Init(void);
+void IMU_Update( uint8_t *sensorData );
 
 #endif // __MAINCOMPUTE_H typedef enum
