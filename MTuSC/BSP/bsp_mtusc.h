@@ -24,8 +24,8 @@
 #define LED_BLUE_Pin          GPIO_PIN_2
 #define LED_BLUE_GPIO_Port    GPIOD
 
-#define FDCAN_STDBY_Pin       GPIO_PIN_10
-#define FDCAN_STDBY_GPIO_Port GPIOA
+#define FDCAN_STDBY_Pin       GPIO_PIN_0
+#define FDCAN_STDBY_GPIO_Port GPIOB
 
 // Peripheral Definitions 
 // FDCAN 

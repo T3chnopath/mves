@@ -14,7 +14,7 @@ static bool _BSP_IMU_Init(void);
 
 // Peripheral Instance
 I2C_HandleTypeDef   MTuSC_I2C;
-UART_HandleTypeDef  MTuSC_UART;
+UART_HandleTypeDef  ConsoleUart;
 
 static const uint16_t BSP_CLK_DELAY_MS = 100;
 static const uint16_t BSP_DELAY_MS = 200;
@@ -108,9 +108,10 @@ static void _BSP_GPIO_Init(void)
 
     GPIO_PortClkEnable(FDCAN_STDBY_GPIO_Port);
     HAL_GPIO_WritePin(FDCAN_STDBY_GPIO_Port, FDCAN_STDBY_Pin, GPIO_PIN_RESET);
-    GPIO_InitStruct.Pin  = FDCAN_STDBY_Pin;
-    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pin = FDCAN_STDBY_Pin;
     HAL_GPIO_Init(FDCAN_STDBY_GPIO_Port, &GPIO_InitStruct);
+
 }
 
 static void _BSP_FDCAN_Init(void)
@@ -232,32 +233,32 @@ static void _BSP_UART_Init(void)
 #endif 
 
 #ifdef UART4_EN
-    MTuSC_UART.Instance            = UART4;
+    ConsoleUart.Instance            = UART4;
 #endif
-    MTuSC_UART.Init.BaudRate       = UART_BAUDRATE;
-    MTuSC_UART.Init.WordLength     = UART_WORDLENGTH_8B;
-    MTuSC_UART.Init.StopBits       = UART_STOPBITS_1;
-    MTuSC_UART.Init.Parity         = UART_PARITY_NONE;
-    MTuSC_UART.Init.Mode           = UART_MODE_TX_RX;
-    MTuSC_UART.Init.HwFlowCtl      = UART_HWCONTROL_NONE;
-    MTuSC_UART.Init.OverSampling   = UART_OVERSAMPLING_16;
-    MTuSC_UART.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-    MTuSC_UART.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-    MTuSC_UART.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+    ConsoleUart.Init.BaudRate       = UART_BAUDRATE;
+    ConsoleUart.Init.WordLength     = UART_WORDLENGTH_8B;
+    ConsoleUart.Init.StopBits       = UART_STOPBITS_1;
+    ConsoleUart.Init.Parity         = UART_PARITY_NONE;
+    ConsoleUart.Init.Mode           = UART_MODE_TX_RX;
+    ConsoleUart.Init.HwFlowCtl      = UART_HWCONTROL_NONE;
+    ConsoleUart.Init.OverSampling   = UART_OVERSAMPLING_16;
+    ConsoleUart.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+    ConsoleUart.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+    ConsoleUart.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 
-    if (HAL_UART_Init(&MTuSC_UART) != HAL_OK)
+    if (HAL_UART_Init(&ConsoleUart) != HAL_OK)
     {
         _BSP_ErrorHandler();
     }
-    if (HAL_UARTEx_SetTxFifoThreshold(&MTuSC_UART, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+    if (HAL_UARTEx_SetTxFifoThreshold(&ConsoleUart, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
     {
         _BSP_ErrorHandler();
     }
-    if (HAL_UARTEx_SetRxFifoThreshold(&MTuSC_UART, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+    if (HAL_UARTEx_SetRxFifoThreshold(&ConsoleUart, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
     {
         _BSP_ErrorHandler();
     }
-    if (HAL_UARTEx_DisableFifoMode(&MTuSC_UART) != HAL_OK)
+    if (HAL_UARTEx_DisableFifoMode(&ConsoleUart) != HAL_OK)
     {
         _BSP_ErrorHandler();
     }
@@ -286,6 +287,12 @@ static void _BSP_UART_Init(void)
 #endif
     HAL_GPIO_Init(UART_TX_Port, &GPIO_InitStruct);
     HAL_GPIO_Init(UART_RX_Port, &GPIO_InitStruct);
+
+    // Rx interrupt
+#ifdef UART4_EN
+    HAL_NVIC_SetPriority(UART4_IRQn, 3, 0);
+    HAL_NVIC_EnableIRQ(UART4_IRQn);
+#endif
 }
 
 bool _BSP_IMU_Init(void)
