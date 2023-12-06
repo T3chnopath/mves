@@ -30,7 +30,7 @@ static uint8_t auThreadBlinkStack[THREAD_BLINK_STACK_SIZE];
 void thread_blink(ULONG ctx);
 
 static sMCAN_Message mcanRxMessage;
-static const uint16_t LED_BLINK_TIME = 1000;
+static const uint16_t LED_BLINK_TIME_MS = 1000;
 static volatile bool newCommand = false;
 
 // Initialize the queue
@@ -149,7 +149,7 @@ void thread_blink(ULONG ctx)
 {
     while(true)
     {
-        tx_thread_sleep(LED_BLINK_TIME);
+        tx_thread_sleep(LED_BLINK_TIME_MS);
         HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin);
     }
 }

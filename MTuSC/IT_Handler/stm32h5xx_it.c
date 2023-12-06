@@ -22,7 +22,7 @@ void FDCAN1_IT0_IRQHandler(void)
     HAL_FDCAN_IRQHandler(MCAN_GetFDCAN_Handle());
 }
 
-void USART3_IRQHandler(void)
+void UART4_IRQHandler(void)
 {
   HAL_UART_IRQHandler(&ConsoleUart);
 }
