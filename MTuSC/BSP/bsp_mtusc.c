@@ -21,7 +21,7 @@ UART_HandleTypeDef  ConsoleUart;
 TIM_HandleTypeDef   hServo_Tim;
 TIM_HandleTypeDef   hFeedback_Tim;
 
-static const uint16_t BSP_CLK_DELAY_MS = 100;
+static const uint16_t BSP_CLK_DELAY_MS = 1000;
 static const uint16_t BSP_DELAY_MS = 200;
 
 
