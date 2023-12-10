@@ -3,14 +3,15 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include "tx_api.h"
+#include "console.h"
 
 #define MAX_CLOCKWISE_SPEED_PERCENTAGE  (0.064f)
 #define ONE_POINT_FIVE_MS_PERCENTAGE    (0.075f)
 #define MAX_COUNTER_SPEED_PERCENTAGE    (0.086f)
 #define SAMPLE_CNT                      (15U)
-#define PID_Kp                          (0.00286f)      
-#define PID_Ki                          (0.000275f)
-#define PID_Kd                          (51.5f)
+#define PID_Kp                          (0.69911f)      
+#define PID_Ki                          (0.000420f)
+#define PID_Kd                          (25.5f)
 #define OUTPUT_CAP                      (200.0)
 #define SERVO_SPEED_OFFSET              (30.0)
 #define ANGLE_THRESHOLD                 (2)
@@ -18,9 +19,11 @@
 #define SERVO_MIN_TIM_US                (0)
 #define SERVO_MAX_TIM_US                (20000)
 #define ERROR_THRESHOLD                 (5.0f)
-#define STEADY_STATE_CNT_THRES          (1000)
+#define STEADY_STATE_CNT_THRES          (300)
 #define INITIAL_ANGLE_OFFSET            (8)
-#define INTEGRAL_RESET_THRESHOLD        (6000)
+#define INTEGRAL_RESET_THRESHOLD        (15000)
+
+#define DEBUG_PID
 
 //Local Scope Typedef
 typedef enum{
@@ -50,6 +53,18 @@ static volatile bool captureComplete = false;
 static uint16_t stopCnt = 0;
 static uint16_t clockwiseSpeedCnt = 0;
 static uint16_t counterClockwiseSpeedCnt = 0;
+
+#ifdef DEBUG_PID
+    #define INFO_CAPTURE_CNT                (25)
+    static float detectedAngleBuf[1000] = {0};
+    static float targetAngleBuf[1000]   = {0};
+    static float outputBuf[1000]        = {0};
+    static float pErrorBuf[1000]        = {0};
+    static float iErrorBuf[1000]        = {0};
+    static float dErrorBuf[1000]        = {0};
+#endif
+
+
 
 //Local Scope Function
 static void Change_IC_IT_Edge(TIM_HandleTypeDef* tim, const uint8_t channel, uint32_t polarity){
@@ -290,7 +305,7 @@ Servo_Error CONT_Servo_Init(CONT_Servo_Instance_t* contServo){
 
 Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t angle, CSERVO_DIR dir){
 
-    float targetAngle = 0.0;
+    static float targetAngle = 0.0;
     static float detectedAngle = 0.0;
 	float detectedDuty = 0.0;
     float output = 0.0;
@@ -303,6 +318,10 @@ Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t ang
     float offset = 0.0;
     uint16_t steadyStateCnt = 0;
     uint16_t integralResetCnt = 0;
+    #ifdef DEBUG_PID
+        uint16_t bufCnt = 0;
+        uint16_t sampleCnt = 0;
+    #endif
 
     /* Assert Parameter */
     if(contServo == NULL)
@@ -405,6 +424,33 @@ Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t ang
 
         captureState = CAPTURE_NEXT_RISING;   
 
+        #ifdef DEBUG_PID
+            if(sampleCnt >= INFO_CAPTURE_CNT){
+                if(bufCnt >= 1000){
+                    bufCnt = 0;
+                    detectedAngleBuf[bufCnt] = detectedAngle;
+                    targetAngleBuf[bufCnt] = targetAngle;
+                    outputBuf[bufCnt] = output;
+                    pErrorBuf[bufCnt] = pError;
+                    iErrorBuf[bufCnt] = iError;
+                    dErrorBuf[bufCnt] = dError;
+                    bufCnt++;
+                    sampleCnt = 0;
+                }
+                else{
+                    detectedAngleBuf[bufCnt] = detectedAngle;
+                    targetAngleBuf[bufCnt] = targetAngle;
+                    outputBuf[bufCnt] = output;
+                    pErrorBuf[bufCnt] = pError;
+                    iErrorBuf[bufCnt] = iError;
+                    dErrorBuf[bufCnt] = dError;
+                    bufCnt++;
+                    sampleCnt = 0;
+                }
+            }
+            sampleCnt++;
+        #endif
+        
         _tx_thread_sleep(1);
 
     }
