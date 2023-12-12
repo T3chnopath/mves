@@ -24,31 +24,50 @@ void FDCAN1_IT0_IRQHandler(void)
 
 void ArmLS_RetractHandle(void)
 {
-    static uint32_t lastInterruptTime = 0;
-    uint32_t currInterruptTime = HAL_GetTick();
+    uint32_t count = 0;
+    while(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin))
+    {
+        if(count < LS_DEBOUNCE_MS)
+        {
+            HAL_Delay(1);
+            count++;
+        }
+        else
+        {
+            break;
+        }
+    }
 
-    // Debounce
-    if(currInterruptTime - lastInterruptTime > LS_DEBOUNCE_MS)
+    // If debounce time has passed, execute
+    if(count == LS_DEBOUNCE_MS)
     {
         ArmRetractLS();
-
-        lastInterruptTime = currInterruptTime;
-        __HAL_GPIO_EXTI_CLEAR_RISING_IT(ARM_LS_RETRACT_Pin);
     }
+
+    __HAL_GPIO_EXTI_CLEAR_RISING_IT(ARM_LS_RETRACT_Pin);
 }
 
 void ArmLS_DeployHandle(void)
 {
-    static uint32_t lastInterruptTime = 0;
-    uint32_t currInterruptTime = HAL_GetTick();
-
-    // Debounce
-    if(currInterruptTime - lastInterruptTime > LS_DEBOUNCE_MS)
+    uint32_t count = 0;
+    while(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin))
     {
-
-        ArmDeployLS();
-       
-        lastInterruptTime = currInterruptTime;
-        __HAL_GPIO_EXTI_CLEAR_RISING_IT(ARM_LS_DEPLOY_Pin);
+        if(count < LS_DEBOUNCE_MS)
+        {
+            HAL_Delay(1);
+            count++;
+        }
+        else
+        {
+            break;
+        }
     }
+
+    // If debounce time has passed, execute
+    if(count == LS_DEBOUNCE_MS)
+    {
+        ArmDeployLS();
+    }
+
+    __HAL_GPIO_EXTI_CLEAR_RISING_IT(ARM_LS_RETRACT_Pin);
 }
