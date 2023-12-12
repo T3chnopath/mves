@@ -327,6 +327,9 @@ static void _BSP_ARM_DC_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(ARM_DC_Port1, &GPIO_InitStruct);
     HAL_GPIO_Init(ARM_DC_Port2, &GPIO_InitStruct);
+
+    HAL_GPIO_WritePin(ARM_DC_Port1, ARM_DC_Pin1, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, GPIO_PIN_RESET);
 }
 
 static void _BSP_ACT_Init(void){
@@ -393,6 +396,9 @@ static void _BSP_LS_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   IRQn_Type ArmLS_RetractIRQn = PinToEXTI(ARM_LS_RETRACT_Pin);
   IRQn_Type ArmLS_DeployIRQn = PinToEXTI(ARM_LS_DEPLOY_Pin);
+
+  HAL_GPIO_WritePin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin, 0);
+  HAL_GPIO_WritePin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin, 0);
 
   GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;

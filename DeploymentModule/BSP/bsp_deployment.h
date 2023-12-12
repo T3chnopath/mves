@@ -38,7 +38,7 @@
 #define ARM_LS_DEPLOY_PRI       3
 #define ArmLS_DeployHandle      EXTI4_IRQHandler
 
-#define LS_DEBOUNCE_MS          20
+#define LS_DEBOUNCE_MS          100
 
 // Peripheral Definitions 
 // FDCAN 
