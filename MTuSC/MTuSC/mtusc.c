@@ -2,6 +2,7 @@
 #include "servo.h"
 #include "console.h"
 #include "bsp_mtusc.h"
+#include "mcan.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -22,6 +23,30 @@ static const int16_t  SERVO_MAX_ANGLE = 360;
 static const float    SERVO_FEEDBACK_MIN_DUTY = 0.029;
 static const float    SERVO_FEEDBACK_MAX_DUTY = 0.971;
 
+#define MAX_DEPLOY_COMMANDS 14
+#define MAX_COMM_LEN 30
+static const char *deployComms[MAX_DEPLOY_COMMANDS] =
+{
+    "DirtbrakeDeploy",
+    "DirtbrakeRetract", 
+
+    "BayCW",
+    "BayCCW",
+    "BayOrient",
+    "BayStop",
+
+    "ArmDeploy",
+    "ArmRetract",
+    "ArmOrient",
+    "ArmStop",
+
+    "FullDeploy",
+    "FullRetract",
+
+    "Estop",
+    "Idle",
+};
+
 // Static function declarations 
 static void _rotateServo(char *argv[]);
 static void _deployment(char *argv[]);
@@ -34,6 +59,12 @@ ConsoleComm_t _commRotateServo = {
     _rotateServo,
 };
 
+ConsoleComm_t _commDeployment = {
+    "Deployment",
+    "Execute deployment commands",
+    1,
+    _deployment,
+};
 
 
 // Static Functions
@@ -105,9 +136,57 @@ static void _rotateServo(char *argv[])
     ConsolePrint("Servo rotated to %i degrees \r\n", (int16_t) angle);
 }
 
+static void _deployment(char *argv[])
+{
+    char inputBuffer[MAX_COMM_LEN] = {0};
+    uint8_t mcanTxData[8] = {1, 0, 0, 0, 0, 0, 0, 0};
+    bool foundCommand = false;
+    uint8_t commandIndex = 0;
+
+    // Print submenu
+    ConsolePrint("Select Deployment Commands: \r\n");
+    for(uint8_t i = 0; i < MAX_DEPLOY_COMMANDS; i++)
+    {
+        ConsolePrint("  %s \r\n", deployComms[i]);
+    }
+
+    // Detect input command
+    ConsoleInString(inputBuffer, MAX_COMM_LEN);                             
+
+    // Find command 
+    for(commandIndex = 0; commandIndex < MAX_DEPLOY_COMMANDS;)
+    {
+        if(strcmp(deployComms[commandIndex], inputBuffer) == 0)
+        {
+            foundCommand = true;
+            break;
+        }
+        else
+        {
+            // Only add to index if command not found
+            commandIndex++;
+        }
+    }  
+
+    // Exit if command not found
+    if(!foundCommand)
+    {
+        ConsolePrint("Command %s not found! \r\n", inputBuffer);
+        return;
+    }
+    else 
+    {
+        // Set commandIndex in second element of data
+        mcanTxData[1] = commandIndex;
+        MCAN_TX(PRI_EMERGENCY, CAT_COMMAND, DEV_COMPUTE, mcanTxData);
+        ConsolePrint("Executing command %s", deployComms[commandIndex]);
+    }
+}
+
 
 void MTuSC_ConsoleInit(void)
 {
     ConsoleRegisterComm(&_commRotateServo);
+    ConsoleRegisterComm(&_commDeployment);
     ConsoleInit(&ConsoleUart);
 }
