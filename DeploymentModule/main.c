@@ -7,7 +7,7 @@
 
 // Main Thread
 #define THREAD_MAIN_STACK_SIZE 512
-static const uint16_t THREAD_MAIN_DELAY_MS = 10;
+static const uint16_t THREAD_MAIN_DELAY_MS = 1;
 static TX_THREAD stThreadMain;
 static uint8_t auThreadMainStack[THREAD_MAIN_STACK_SIZE];
 void thread_main(ULONG ctx);
