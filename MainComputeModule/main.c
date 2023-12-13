@@ -67,7 +67,7 @@ void thread_main(ULONG ctx)
     ConsoleInit(&MIO_UART);
 
     // Register node that sends out IMU data over CAN every second
-    SensorNodeRegister( DEV_ALL, 1000, IMU_Update, SENSOR_NODE_ENABLE);
+    SensorNodeRegister( DEV_ALL, 250, IMU_Update, SENSOR_NODE_ENABLE);
     
     
     while(true)
