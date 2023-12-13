@@ -4,12 +4,17 @@
 #include "bno055.h"
 #include "maincompute.h"
 #include "sensor_nodes.h"
+#include "console.h"
+
+// Externs
+extern UART_HandleTypeDef  MIO_UART;
 
 // Main Thread
-#define THREAD_MAIN_STACK_SIZE 512
+#define THREAD_MAIN_STACK_SIZE 1024
 static TX_THREAD stThreadMain;
 static uint8_t auThreadMainStack[THREAD_MAIN_STACK_SIZE];
 static const uint16_t THREAD_MAIN_DELAY_MS = 10;
+static char MIO_Sequence[] = {'r', 'f', 'r', 'd', 'r', 'w', 'r', 'q'};
 void thread_main(ULONG ctx);
 
 // Blink Thread
@@ -59,12 +64,18 @@ void thread_main(ULONG ctx)
     // Initialize App Layer
     MCAN_Init( FDCAN1, DEV_COMPUTE, MCAN_ENABLE );
     IMU_Init();
+    ConsoleInit(&MIO_UART);
 
     // Register node that sends out IMU data over CAN every second
     SensorNodeRegister( DEV_ALL, 1000, IMU_Update, SENSOR_NODE_ENABLE);
     
+    
     while(true)
     {
+        for(uint8_t i = 0; i < sizeof(MIO_Sequence); i++){
+            ConsolePrint(&MIO_Sequence[i]);
+            tx_thread_sleep(5000);
+        }
         tx_thread_sleep(THREAD_MAIN_DELAY_MS);
     }
 }
