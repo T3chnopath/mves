@@ -7,12 +7,14 @@ static void _BSP_ErrorHandler(void);
 static void _BSP_GPIO_Init(void);
 static void _BSP_FDCAN_Init(void);
 static void _BSP_I2C_Init(void);
+static void _BSP_MIO_UART_Init(void);
 
 static const uint16_t BSP_CLK_DELAY_MS = 100;
 static const uint16_t BSP_DELAY_MS = 100;
 
 // Peripheral Instance
 I2C_HandleTypeDef   MTuSC_I2C;
+UART_HandleTypeDef  MIO_UART;
 
 void BSP_Init(void)
 {
@@ -23,6 +25,7 @@ void BSP_Init(void)
     _BSP_GPIO_Init();
     _BSP_FDCAN_Init();
     _BSP_I2C_Init(); 
+    _BSP_MIO_UART_Init();
     tx_thread_sleep(BSP_DELAY_MS);
 }
 
@@ -239,6 +242,63 @@ static void _BSP_I2C_Init(void){
 
   HAL_GPIO_Init(I2C_SDA_Port, &GPIO_InitStruct);
   HAL_GPIO_Init(I2C_SCL_Port, &GPIO_InitStruct);
+}
+
+static void _BSP_MIO_UART_Init(void){
+
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+
+  // UART
+  __HAL_RCC_UART7_CLK_ENABLE();
+
+  MIO_UART.Instance = UART7;
+  MIO_UART.Init.BaudRate = 115200;
+  MIO_UART.Init.WordLength = UART_WORDLENGTH_8B;
+  MIO_UART.Init.StopBits = UART_STOPBITS_1;
+  MIO_UART.Init.Parity = UART_PARITY_NONE;
+  MIO_UART.Init.Mode = UART_MODE_TX_RX;
+  MIO_UART.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  MIO_UART.Init.OverSampling = UART_OVERSAMPLING_16;
+  MIO_UART.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  MIO_UART.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  MIO_UART.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&MIO_UART) != HAL_OK)
+  {
+    _BSP_ErrorHandler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&MIO_UART, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    _BSP_ErrorHandler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&MIO_UART, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    _BSP_ErrorHandler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&MIO_UART) != HAL_OK)
+  {
+    _BSP_ErrorHandler();
+  }
+
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_UART7;
+  PeriphClkInitStruct.Uart7ClockSelection = RCC_UART7CLKSOURCE_PCLK1;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    _BSP_ErrorHandler();
+  }
+
+  // GPIO
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+  /**UART7 GPIO Configuration
+  PE7     ------> UART7_RX
+  PE8     ------> UART7_TX
+  */
+  GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF7_UART7;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 }
 
 static void _BSP_ErrorHandler(void)

@@ -21,7 +21,7 @@ UART_HandleTypeDef  ConsoleUart;
 TIM_HandleTypeDef   hServo_Tim;
 TIM_HandleTypeDef   hFeedback_Tim;
 
-static const uint16_t BSP_CLK_DELAY_MS = 1000;
+static const uint16_t BSP_CLK_DELAY_MS = 1500;
 static const uint16_t BSP_DELAY_MS = 200;
 
 
@@ -305,8 +305,8 @@ static void _BSP_UART_Init(void)
 bool _BSP_IMU_Init(void)
 {
     /* Custom Axis */
-    BNO055_AXIS_CONFIG_t axis_config = {.x = BNO055_Z_AXIS,
-                                        .y = BNO055_Y_AXIS,
+    BNO055_AXIS_CONFIG_t axis_config = {.x = BNO055_Y_AXIS,
+                                        .y = BNO055_Z_AXIS,
                                         .z = BNO055_X_AXIS};
 
     /* Required Boot-up Time for BNO055 */

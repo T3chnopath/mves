@@ -13,15 +13,14 @@
 #define PID_Ki                          (0.000420f)
 #define PID_Kd                          (25.5f)
 #define OUTPUT_CAP                      (200.0)
-#define SERVO_SPEED_OFFSET              (30.0)
-#define ANGLE_THRESHOLD                 (2)
 #define SPEED_OFFSET                    (30.0)
-#define SERVO_MIN_TIM_US                (0)
 #define SERVO_MAX_TIM_US                (20000)
 #define ERROR_THRESHOLD                 (5.0f)
 #define STEADY_STATE_CNT_THRES          (300)
-#define INITIAL_ANGLE_OFFSET            (8)
 #define INTEGRAL_RESET_THRESHOLD        (15000)
+#define MAX_ANGLE_ERROR_THRESHOLD       (300.0)
+
+// #define DEBUG_PID
 
 //Local Scope Typedef
 typedef enum{
@@ -53,7 +52,7 @@ static uint16_t clockwiseSpeedCnt = 0;
 static uint16_t counterClockwiseSpeedCnt = 0;
 
 #ifdef DEBUG_PID
-    #define INFO_CAPTURE_CNT                (25)
+    #define INFO_CAPTURE_CNT                (20)
     static float detectedAngleBuf[1000] = {0};
     static float targetAngleBuf[1000]   = {0};
     static float outputBuf[1000]        = {0};
@@ -326,6 +325,10 @@ Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t ang
         return SERVO_INSTANCE_ERROR;
     else if(contServo->contServoConfig == NULL)
         return SERVO_INSTANCE_ERROR;
+    else if(angle < contServo->contServoConfig->minAngle)
+        return SERVO_RANGE_ERROR_MIN;
+    else if(angle > contServo->contServoConfig->maxAngle)
+        return SERVO_RANGE_ERROR_MAX;
     
     /* Calculate Current Angle */
     if(dir == SERVO_CLOCKWISE){
@@ -367,6 +370,11 @@ Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t ang
 
         // P and I error calculation
         error = -(targetAngle - detectedAngle);
+
+        // Prevent Overspinning
+        if(error < -MAX_ANGLE_ERROR_THRESHOLD || error > MAX_ANGLE_ERROR_THRESHOLD){
+            break;
+        }
 
         //Check if we are within threshold
         if((error < ERROR_THRESHOLD) && (error > -ERROR_THRESHOLD)){
@@ -411,7 +419,7 @@ Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t ang
 
         // Drive Servo Motor
         __HAL_TIM_SET_COMPARE(contServo->contServoTimer, contServo->contServoChannel,
-                              map(1500 + output + offset, SERVO_MIN_TIM_US, SERVO_MAX_TIM_US, 0, contServo->contServoTimer->Init.Period));
+                              map(1500 + output + offset, 0, SERVO_MAX_TIM_US, 0, contServo->contServoTimer->Init.Period));
 
         // Prevent Integral explosion
         integralResetCnt++;
@@ -454,6 +462,10 @@ Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t ang
     }
 
     return SERVO_OK;
+}
+
+float Get_Current_Angle(void){
+    return currAngle;
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
