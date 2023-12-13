@@ -120,6 +120,7 @@ void thread_main(ULONG ctx)
 
     while(true)
     {
+        // BNO055_Get_Gravity_Vec(&BNO055_Vector);
         tx_thread_sleep(THREAD_MAIN_DELAY_MS);
     }
 }
