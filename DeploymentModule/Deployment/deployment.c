@@ -444,7 +444,7 @@ void thread_arm_orient(ULONG ctx)
                 tx_thread_sleep(THREAD_ARM_ORIENT_DELAY_MS);
 
                 // Terminate if 1G in Z Axis
-                if(IMU_CheckAxisUpward(BAY, Z, GRAV_THRESHOLD))
+                if(IMU_CheckAxisUpward(ARM, Z, GRAV_THRESHOLD))
                     break;
 
                 // Terminate if either limit switch is pressed
