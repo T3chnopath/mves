@@ -135,11 +135,18 @@ void thread_main(ULONG ctx)
                 }
             }
             
-             // If sensor data, update IMU
+            // Update IMU Data
             else if ( currMcanRxMessage.mcanID.MCAN_CAT == CAT_SENSOR_NODE )
             {
-                IMU_Update( currMcanRxMessage.mcanData );
+                // Update Bay IMU
+                if( currMcanRxMessage.mcanID.MCAN_TX_Device == DEV_COMPUTE )
+                    IMU_Update(BAY, currMcanRxMessage.mcanData );
+
+                else if( currMcanRxMessage.mcanID.MCAN_TX_Device == DEV_MTUSC )
+                    IMU_Update(ARM, currMcanRxMessage.mcanData );
             }
+
+            // Update Arm IMU Data
         }
         tx_thread_sleep(THREAD_MAIN_DELAY_MS);
     }
