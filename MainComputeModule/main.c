@@ -23,6 +23,7 @@ static TX_THREAD stThreadBlink;
 static uint8_t auThreadBlinkStack[THREAD_BLINK_STACK_SIZE];
 void thread_blink(ULONG ctx);
 
+static const uint16_t IMU_UPDATE_PERIOD_MS = 250;
 static const uint16_t LED_BLINK_TIME_MS = 1000;
 static sMCAN_Message mcanRxMessage = { 0 };
 
@@ -66,9 +67,8 @@ void thread_main(ULONG ctx)
     IMU_Init();
     ConsoleInit(&MIO_UART);
 
-    // Register node that sends out IMU data over CAN every second
-    SensorNodeRegister( DEV_ALL, 250, IMU_Update, SENSOR_NODE_ENABLE);
-    
+    // Register node that sends out IMU data over CAN every 250 ms
+    SensorNodeRegister( DEV_ALL, IMU_UPDATE_PERIOD_MS, IMU_Update, SENSOR_NODE_ENABLE);
     
     while(true)
     {

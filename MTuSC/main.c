@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include "bsp_mtusc.h"
 #include "mcan.h"
+#include "sensor_nodes.h"
 #include "bno055.h"
 #include "stm32h5xx_hal.h"
 #include "console.h"
@@ -8,6 +9,7 @@
 #include "mtusc.h"
 #include "tx_api.h"
 
+#include <stdint.h>
 
 // Main Thread
 #define THREAD_MAIN_STACK_SIZE 1024
@@ -23,6 +25,7 @@ static TX_THREAD stThreadBlink;
 static uint8_t auThreadBlinkStack[THREAD_BLINK_STACK_SIZE];
 void thread_blink(ULONG ctx);
 
+static const uint16_t IMU_UPDATE_PERIOD_MS = 3000;
 
 int main(void)
 {
@@ -61,6 +64,12 @@ void thread_main(ULONG ctx)
 
     // Init App Layer
     MCAN_Init( FDCAN1, DEV_ALL, MCAN_ENABLE);
+
+    IMU_Init();
+
+    // Register node that sends out IMU data over CAN every 250 ms
+    SensorNodeRegister( DEV_ALL, IMU_UPDATE_PERIOD_MS, IMU_Update, SENSOR_NODE_ENABLE);
+    
     MTuSC_ConsoleInit();
     
     while(true)

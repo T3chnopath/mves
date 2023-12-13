@@ -7,9 +7,10 @@
 #include "mcan.h"
 #include "tx_api.h"
 
-extern I2C_HandleTypeDef MTuSC_I2C;
+extern I2C_HandleTypeDef ComputeI2C;
 static BNO055_Axis_Vec_t BNO055_Vector;
 static const uint16_t BNO055_DELAY_MS = 1;
+static const uint16_t BNO055_INIT_DELAY_MS = 700;
 
 // Initialize BN055 IMU
 bool IMU_Init(void)
@@ -20,10 +21,10 @@ bool IMU_Init(void)
                                         .z = BNO055_X_AXIS};
 
     /* Required Boot-up Time for BNO055 */
-    tx_thread_sleep(700);
+    tx_thread_sleep(BNO055_INIT_DELAY_MS);
 
     /* BNO055 Init */
-    BNO055_I2C_Mount(&MTuSC_I2C);
+    BNO055_I2C_Mount(&ComputeI2C);
     if (BNO055_Init() != BNO055_SUCCESS)
         return false;
 

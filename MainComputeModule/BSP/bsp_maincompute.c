@@ -13,7 +13,7 @@ static const uint16_t BSP_CLK_DELAY_MS = 100;
 static const uint16_t BSP_DELAY_MS = 100;
 
 // Peripheral Instance
-I2C_HandleTypeDef   MTuSC_I2C;
+I2C_HandleTypeDef   ComputeI2C;
 UART_HandleTypeDef  MIO_UART;
 
 void BSP_Init(void)
@@ -196,30 +196,30 @@ static void _BSP_I2C_Init(void){
   __HAL_RCC_I2C3_CLK_ENABLE();
 
   /* I2C3 Init */
-  MTuSC_I2C.Instance = I2C3;
-  MTuSC_I2C.Init.Timing = 0x2080319C;
-  MTuSC_I2C.Init.OwnAddress1 = 0;
-  MTuSC_I2C.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  MTuSC_I2C.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  MTuSC_I2C.Init.OwnAddress2 = 0;
-  MTuSC_I2C.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  MTuSC_I2C.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  MTuSC_I2C.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&MTuSC_I2C) != HAL_OK)
+  ComputeI2C.Instance = I2C3;
+  ComputeI2C.Init.Timing = 0x2080319C;
+  ComputeI2C.Init.OwnAddress1 = 0;
+  ComputeI2C.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  ComputeI2C.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  ComputeI2C.Init.OwnAddress2 = 0;
+  ComputeI2C.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  ComputeI2C.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  ComputeI2C.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&ComputeI2C) != HAL_OK)
   {
     _BSP_ErrorHandler();
   }
   
   /** Configure Analogue filter
   */
-  if (HAL_I2CEx_ConfigAnalogFilter(&MTuSC_I2C, I2C_ANALOGFILTER_DISABLE) != HAL_OK)
+  if (HAL_I2CEx_ConfigAnalogFilter(&ComputeI2C, I2C_ANALOGFILTER_DISABLE) != HAL_OK)
   {
     _BSP_ErrorHandler();
   }
   
   /** Configure Digital filter
   */
-  if (HAL_I2CEx_ConfigDigitalFilter(&MTuSC_I2C, 0) != HAL_OK)
+  if (HAL_I2CEx_ConfigDigitalFilter(&ComputeI2C, 0) != HAL_OK)
   {
     _BSP_ErrorHandler();
   }
