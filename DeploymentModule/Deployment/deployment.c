@@ -19,6 +19,8 @@ static const uint16_t THREAD_DEPLOY_DELAY_MS = 10;
 static const uint16_t SENSOR_NODE_EN_DELAY_MS = 5000;
 void thread_deploy(ULONG ctx);
 
+static bool activeGimbal = false;
+
 // Bay Orientation Thread
 #define THREAD_BAY_ORIENT_STACK_SIZE 1024
 static TX_THREAD stThreadBayOrient;
@@ -325,6 +327,16 @@ void thread_deploy(ULONG ctx)
                     FullRetract();
                     break;
 
+                case ACTIVE_GIMBAL_ENABLE:
+                    activeGimbal = true; 
+                    tx_thread_resume(&stThreadBayOrient);
+                    tx_thread_resume(&stThreadArmOrient);
+                    break;
+
+                case ACTIVE_GIMBAL_DISABLE:
+                    activeGimbal = false;
+                    break;
+
                 case ESTOP:
                     EStop();
                     break;
@@ -377,7 +389,10 @@ void thread_bay_orient(ULONG ctx)
 
         BayStop();
 
-        tx_thread_suspend(&stThreadBayOrient);
+        if(!activeGimbal)
+        {
+            tx_thread_suspend(&stThreadBayOrient);
+        }
     }
 }
 

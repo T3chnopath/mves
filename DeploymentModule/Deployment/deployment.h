@@ -18,11 +18,14 @@ typedef enum
     ARM_RETRACT,
     ARM_ORIENT,
     ARM_STOP,
-        
+    
     FULL_DEPLOY,
     FULL_RETRACT,
-    ESTOP,
 
+    ACTIVE_GIMBAL_ENABLE,
+    ACTIVE_GIMBAL_DISABLE,
+        
+    ESTOP,
     IDLE,
 
 } DEPLOY_COMM;
@@ -45,6 +48,7 @@ void ArmStop(void);
 
 void FullDeploy(void);
 void FullRetract(void);
+
 void EStop(void);
 
 bool DeployCommExe(DEPLOY_COMM command);
