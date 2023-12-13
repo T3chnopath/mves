@@ -36,7 +36,7 @@ void thread_arm_orient(ULONG ctx);
 
 // Control Variables
 static volatile DEPLOY_COMM currentCommand = IDLE;
-
+static volatile bool newCommand = false;
 
 // Motor Variables
 extern TIM_HandleTypeDef hACT_Tim;
@@ -265,9 +265,11 @@ void FullRetract(void)
 
 bool DeployCommExe(DEPLOY_COMM command)
 {
-    // Process estop
-    if(command == ESTOP)
+    // Process estop if busy
+    if(command == ESTOP && deployBusy)
     {
+        currentCommand = IDLE;
+        newCommand - true;
         EStop();
         return true;
     }
@@ -280,6 +282,7 @@ bool DeployCommExe(DEPLOY_COMM command)
     
     // Set current command for module
     currentCommand = command;
+    newCommand = true;
     return true;
 }
 
@@ -287,8 +290,9 @@ void thread_deploy(ULONG ctx)
 {
     while(true)
     {             
-        if( !deployBusy )
+        if( newCommand )
         {
+            deployBusy = true;
             switch( currentCommand )
             {
                 // Dirtbrake Commands
@@ -366,6 +370,7 @@ void thread_deploy(ULONG ctx)
             }
 
         deployBusy = false; 
+        newCommand = false;
         }
     
     tx_thread_sleep(THREAD_DEPLOY_DELAY_MS);

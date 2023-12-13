@@ -69,5 +69,5 @@ void ArmLS_DeployHandle(void)
         ArmDeployLS();
     }
 
-    __HAL_GPIO_EXTI_CLEAR_RISING_IT(ARM_LS_RETRACT_Pin);
+    __HAL_GPIO_EXTI_CLEAR_RISING_IT(ARM_LS_DEPLOY_Pin);
 }

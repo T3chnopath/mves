@@ -99,7 +99,7 @@ static Servo_Error _initServo(void)
 static void _rotateServo(char *argv[])
 {
     CSERVO_DIR servoDir; 
-    static bool firstCall = true;
+    static bool initialized = false;
     int16_t angle = atoi(argv[1]);
 
     // Verify valid direction
@@ -128,11 +128,12 @@ static void _rotateServo(char *argv[])
     }
 
     // Init servo if first time calling this function
-    if(firstCall)
+    if(!initialized)
     {
         if( _initServo() == SERVO_OK )
         {
             ConsolePrint("Servo Initialized! \r\n");
+            initialized = true;
         }
         else
         {
