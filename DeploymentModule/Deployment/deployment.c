@@ -15,7 +15,7 @@ static DEPLOY_COMM currentCommand = IDLE;
 #define THREAD_DEPLOY_STACK_SIZE 2048
 static TX_THREAD stThreadDeploy;
 static uint8_t auThreadDeployStack[THREAD_DEPLOY_STACK_SIZE];
-static const uint16_t THREAD_DEPLOY_DELAY_MS = 10;
+static const uint16_t THREAD_DEPLOY_DELAY_MS = 1;
 static const uint16_t SENSOR_NODE_EN_DELAY_MS = 5000;
 void thread_deploy(ULONG ctx);
 
@@ -25,7 +25,7 @@ static bool activeGimbal = false;
 #define THREAD_BAY_ORIENT_STACK_SIZE 1024
 static TX_THREAD stThreadBayOrient;
 static uint8_t auThreadBayOrientStack[THREAD_BAY_ORIENT_STACK_SIZE];
-static const uint16_t THREAD_BAY_ORIENT_DELAY_MS = 1;
+static const uint16_t THREAD_BAY_ORIENT_DELAY_MS = 50;
 void thread_bay_orient(ULONG ctx);
 static const float GRAV_THRESHOLD = 0.1;
 
@@ -33,7 +33,7 @@ static const float GRAV_THRESHOLD = 0.1;
 #define THREAD_ARM_ORIENT_STACK_SIZE 1024
 static TX_THREAD stThreadArmOrient;
 static uint8_t auThreadArmOrientStack[THREAD_ARM_ORIENT_STACK_SIZE];
-static const uint16_t THREAD_ARM_ORIENT_DELAY_MS = 1;
+static const uint16_t THREAD_ARM_ORIENT_DELAY_MS = 50;
 void thread_arm_orient(ULONG ctx);
 
 // Motor Variables
@@ -46,6 +46,7 @@ static const uint16_t DIRTBRAKE_DELAY_MS = 5000;
 // Limit Switch Variables
 static volatile bool ArmRetractLS_Handled = false;
 static volatile bool ArmDeployLS_Handled  = false;
+static const uint16_t ARM_LS_RESET_TIME = 1000;
 
 static volatile bool deployBusy = false;
 static volatile bool eStop = false;
@@ -175,6 +176,10 @@ void ArmDeployLS(void)
         ArmStop(); 
     }
     ArmDeployLS_Handled = true;
+
+    // Set to handled for a short period
+    tx_thread_sleep(ARM_LS_RESET_TIME);
+    ArmRetractLS_Handled = false;
 }
 
 void ArmRetract(void)
@@ -198,6 +203,11 @@ void ArmRetractLS(void)
         ArmStop();
     }
     ArmRetractLS_Handled = true;
+
+    // Set to handled for a short period
+    tx_thread_sleep(ARM_LS_RESET_TIME);
+    ArmRetractLS_Handled = false;
+    
 }
 
 void ArmStop(void)
@@ -242,8 +252,10 @@ void FullDeploy(void)
 void FullRetract(void)
 {
     ArmRetract();
+
+    // Wait for retraciton limit switch
     while(!ArmRetractLS_Handled);
-    ArmRetractLS_Handled = false;
+
     DirtbrakeRetract();
 }
 
@@ -359,36 +371,42 @@ void thread_bay_orient(ULONG ctx)
 {
     while(true)
     {
-    
-        // Get initial direction
-        BAY_DIR initialDir = IMU_GetDirBias();
-        switch(initialDir)
+        // If not oriented, orient
+        if(!IMU_CheckAxisUpward(BAY, Z, GRAV_THRESHOLD))
         {
-            case CW:
-                BayCCW();
-                break;
-            
-            case CCW:
-                BayCW();
-                break;
+            // Get initial direction
+            IMU_BAY_DIR initialDir = IMU_GetBayDir();
+            switch(initialDir)
+            {
+                case CW:
+                    BayCCW();
+                    break;
+                
+                case CCW:
+                    BayCW();
+                    break;
+            }
+
+            // Terminate if Estop
+            while(!eStop)
+            {
+                tx_thread_sleep(THREAD_BAY_ORIENT_DELAY_MS);
+
+                // Terminate if 1G in Z axis
+                if(IMU_CheckAxisUpward(BAY, Z, GRAV_THRESHOLD))
+                    break;
+
+                // Terminate if change in direction
+                if(initialDir != IMU_GetBayDir())
+                    break;
+            }
         }
 
-        // Terminate if Estop
-        while(!eStop)
-        {
-            tx_thread_sleep(THREAD_BAY_ORIENT_DELAY_MS);
-
-            // Terminate if 1G in Z axis
-            if(IMU_CheckZ(GRAV_THRESHOLD))
-                break;
-
-            // Terminate if change in direction
-            if(initialDir != IMU_GetDirBias())
-                break;
-        }
-
+        // Stop Bay
         BayStop();
+        tx_thread_sleep(THREAD_BAY_ORIENT_DELAY_MS);
 
+        // Repeat loop if active gimbaling
         if(!activeGimbal)
         {
             tx_thread_suspend(&stThreadBayOrient);
@@ -398,5 +416,46 @@ void thread_bay_orient(ULONG ctx)
 
 void thread_arm_orient(ULONG ctx)
 {
-    
+    float armAccelZ;
+    while(true)
+    {
+        // If not oriented upward, orient
+        if(!IMU_CheckAxisUpward(ARM, Z, GRAV_THRESHOLD))
+        {
+            // Start Arm Deployment based on initial direction
+            armAccelZ = IMU_Get(ARM, Y);
+            if(armAccelZ < (ACCEL_GRAV - GRAV_THRESHOLD) )
+            {
+                ArmDeploy();
+            }
+            else if(armAccelZ > (ACCEL_GRAV - GRAV_THRESHOLD) )
+            {
+                ArmRetract();
+            }
+
+            // Teminate if Estop
+            while(!eStop)
+            {
+                tx_thread_sleep(THREAD_ARM_ORIENT_DELAY_MS);
+
+                // Terminate if 1G in Z Axis
+                if(IMU_CheckAxisUpward(BAY, Z, GRAV_THRESHOLD))
+                    break;
+
+                // Terminate if either limit switch is pressed
+                if(ArmDeployLS_Handled || ArmRetractLS_Handled)
+                    break;
+            } 
+        }
+
+        // Stop Arm
+        ArmStop();
+        tx_thread_sleep(THREAD_ARM_ORIENT_DELAY_MS);
+
+        // Repeat loop if active gimbaling
+        if(!activeGimbal)
+        {
+            tx_thread_suspend(&stThreadArmOrient);
+        }
+    } 
 }

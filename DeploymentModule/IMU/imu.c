@@ -2,29 +2,29 @@
 #include <string.h>
 #include "imu.h"
 
-static const float ACCEL_GRAV = 9.81;
-
-// Bay IMU data
-static float bayAccelY = 0;
-static float bayAccelZ = 0;
+static float accel[2][3]; // Two IMU rows, of three axis each
 
 // Update current bay IMU data
-void IMU_Update(uint8_t * data)
+void IMU_Update(IMU_TYPE type, uint8_t * data)
 {
     static bool IMU_ProcessThreadCreate = false;
-
-    memcpy(&bayAccelY, data, sizeof(float));
-    memcpy(&bayAccelZ, data + sizeof(float), sizeof(float));
+    
+    if(type == BAY)
+    {
+        // data encoded as Y followed by Z
+        memcpy(&accel[BAY][Y], data, sizeof(float));
+        memcpy(&accel[BAY][Z], data + sizeof(float), sizeof(float));
+    }
+    else
+    {
+        // data encoded as just Z
+        memcpy(&accel[ARM][Z], data, sizeof(float));
+    }
 }
 
 // Return direction that bay is biased
-BAY_DIR IMU_GetDirBias( void )
+IMU_BAY_DIR IMU_GetBayDir( void )
 {
-    // Ensure calculations apply to the same set of Y and Z,
-    // So it is not interrupted by updates 
-    float _bayAccelY = bayAccelY;
-    float _bayAccelZ = bayAccelZ;
-
     /*
    CCW  |  CW
    +y   |  +y
@@ -59,7 +59,7 @@ BAY_DIR IMU_GetDirBias( void )
     // }
 
 
-    if( _bayAccelY > 0) 
+    if( accel[BAY][Y] > 0) 
     {
         return CW;
     }
@@ -70,15 +70,21 @@ BAY_DIR IMU_GetDirBias( void )
     }
 }
 
-// Return true if Z is oriented upward
-bool IMU_CheckZ(float threshold)
+// Return true if axis is oriented upward
+bool IMU_CheckAxisUpward(IMU_TYPE type, IMU_AXIS axis, float threshold)
 {
-    float _bayAccelZ = bayAccelZ;
+    float axisAccel = accel[type][axis];
 
-    if( _bayAccelZ > (ACCEL_GRAV - threshold) && _bayAccelZ < (ACCEL_GRAV + threshold))
+    if( axisAccel > (ACCEL_GRAV - threshold) && axisAccel < (ACCEL_GRAV + threshold))
     {
         return true;
     }
 
     return false;
+}
+
+// Return value of specified axis
+float IMU_Get(IMU_TYPE type, IMU_AXIS  axis)
+{
+    return accel[type][axis];
 }
