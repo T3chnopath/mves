@@ -31,7 +31,7 @@ static const float GRAV_THRESHOLD = 0.1;
 #define THREAD_ARM_ORIENT_STACK_SIZE 1024
 static TX_THREAD stThreadArmOrient;
 static uint8_t auThreadArmOrientStack[THREAD_ARM_ORIENT_STACK_SIZE];
-static const uint16_t THREAD_ARM_ORIENT_DELAY_MS = 50;
+static const uint16_t THREAD_ARM_ORIENT_DELAY_MS = 1;
 void thread_arm_orient(ULONG ctx);
 
 // Control Variables
@@ -42,7 +42,7 @@ static volatile bool newCommand = false;
 extern TIM_HandleTypeDef hACT_Tim;
 static Actuator_Config_t actConfig;
 static Actuator_Instance_t actInstance;
-static const uint16_t LS_DELAY_MS = 5000;
+static const uint16_t LS_DRIVEBACK_DELAY_MS = 5000;
 static const uint16_t DIRTBRAKE_DELAY_MS = 5000;
 
 static volatile bool activeGimbal = false;
@@ -50,7 +50,7 @@ static volatile bool activeGimbal = false;
 // Limit Switch Variables
 static volatile bool ArmRetractLS_Handled = false;
 static volatile bool ArmDeployLS_Handled  = false;
-static const uint16_t ARM_LS_RESET_TIME = 1000;
+static const uint16_t ARM_LS_RESET_TIME = 3000;
 
 static volatile bool deployBusy = false;
 static volatile bool eStop = false;
@@ -175,15 +175,11 @@ void ArmDeployLS(void)
     if(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin))
     {
         ArmRetract();
-        HAL_Delay(LS_DELAY_MS);
+        HAL_Delay(LS_DRIVEBACK_DELAY_MS);
         while(HAL_GPIO_ReadPin(ARM_LS_DEPLOY_Port, ARM_LS_DEPLOY_Pin));
         ArmStop(); 
     }
     ArmDeployLS_Handled = true;
-
-    // Set to handled for a short period
-    tx_thread_sleep(ARM_LS_RESET_TIME);
-    ArmRetractLS_Handled = false;
 }
 
 void ArmRetract(void)
@@ -202,16 +198,11 @@ void ArmRetractLS(void)
     if(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin))
     {
         ArmDeploy();
-        HAL_Delay(LS_DELAY_MS);
+        HAL_Delay(LS_DRIVEBACK_DELAY_MS);
         while(HAL_GPIO_ReadPin(ARM_LS_RETRACT_Port, ARM_LS_RETRACT_Pin));
         ArmStop();
     }
     ArmRetractLS_Handled = true;
-
-    // Set to handled for a short period
-    tx_thread_sleep(ARM_LS_RESET_TIME);
-    ArmRetractLS_Handled = false;
-    
 }
 
 void ArmStop(void)
@@ -220,24 +211,10 @@ void ArmStop(void)
     HAL_GPIO_WritePin(ARM_DC_Port2, ARM_DC_Pin2, RESET);
 }
 
-// BLOCKING
-void ArmOrient(void)
-{
-    // TEMP rely on LS until IMU data is implemented
-    ArmDeploy();
-
-    // // Wait for limit switch to be pressed
-    // while(!ArmRetractLS_Pressed);
-
-    // // Wait for limit switch to be unpressed
-    // while(ArmRetractLS_Pressed);
-
-    return;
-}
-
 void EStop(void)
 {
     eStop = true;
+    activeGimbal = false;
 
     ArmStop();
     BayStop();
@@ -250,7 +227,8 @@ void FullDeploy(void)
 {
     DirtbrakeDeploy();
     BayOrient();
-    ArmOrient();
+    tx_thread_resume(&stThreadBayOrient);
+    tx_thread_resume(&stThreadArmOrient);
 }
 
 void FullRetract(void)
@@ -433,7 +411,7 @@ void thread_arm_orient(ULONG ctx)
         if(!IMU_CheckAxisUpward(ARM, Z, GRAV_THRESHOLD))
         {
             // Start Arm Deployment based on initial direction
-            armAccelZ = IMU_Get(ARM, Y);
+            armAccelZ = IMU_Get(ARM, Z);
             if(armAccelZ < (ACCEL_GRAV - GRAV_THRESHOLD) )
             {
                 ArmDeploy();
@@ -453,8 +431,17 @@ void thread_arm_orient(ULONG ctx)
                     break;
 
                 // Terminate if either limit switch is pressed
-                if(ArmDeployLS_Handled || ArmRetractLS_Handled)
+                if(ArmDeployLS_Handled)
+                {
+                    ArmDeployLS_Handled = false;
                     break;
+                }
+
+                if(ArmRetractLS_Handled)
+                {
+                    ArmRetractLS_Handled = false;
+                    break;
+                }
             } 
         }
 

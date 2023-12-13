@@ -36,14 +36,12 @@ void DirtbrakeRetract(void);
 
 void BayCW(void);
 void BayCCW(void);
-void BayOrient(void);
 void BayStop(void);
 
 void ArmDeploy(void);
 void ArmDeployLS(void);
 void ArmRetract(void);
 void ArmRetractLS(void);
-void ArmOrient(void);
 void ArmStop(void);
 
 void FullDeploy(void);
