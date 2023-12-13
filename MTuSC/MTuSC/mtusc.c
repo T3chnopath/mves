@@ -23,8 +23,9 @@ static const int16_t  SERVO_MAX_ANGLE = 360;
 static const float    SERVO_FEEDBACK_MIN_DUTY = 0.029;
 static const float    SERVO_FEEDBACK_MAX_DUTY = 0.971;
 
-#define MAX_DEPLOY_COMMANDS 14
+#define MAX_DEPLOY_COMMANDS 16
 #define MAX_COMM_LEN 30
+
 static const char *deployComms[MAX_DEPLOY_COMMANDS] =
 {
     "DirtbrakeDeploy",
@@ -43,7 +44,10 @@ static const char *deployComms[MAX_DEPLOY_COMMANDS] =
     "FullDeploy",
     "FullRetract",
 
-    "Estop",
+    "ActiveGimbalEnable",
+    "ActiveGimbalDisable",
+
+    "EStop",
     "Idle",
 };
 
