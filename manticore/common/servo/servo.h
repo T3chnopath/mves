@@ -106,5 +106,6 @@ Actuator_Error Drive_Actuator(const Actuator_Instance_t* act, const uint8_t leng
 //Continuous Servo Functions
 Servo_Error CONT_Servo_Init(CONT_Servo_Instance_t* contServo);
 Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t angle, CSERVO_DIR dir);
+float Get_Current_Angle(void);
 
 #endif

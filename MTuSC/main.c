@@ -15,6 +15,7 @@ extern TIM_HandleTypeDef   hFeedback_Tim;
 static BNO055_Axis_Vec_t BNO055_Vector;
 static CONT_Servo_Config_t cServoConfig;
 static CONT_Servo_Instance_t cServoInstance;
+static float CONT_Servo_Angle = 0.0;
 static void _rotateServo(char *argv[]);
 
 // Main Thread
@@ -116,17 +117,10 @@ void thread_main(ULONG ctx)
 
     CONT_Servo_Init(&cServoInstance);
     tx_thread_sleep(5000);
+
     while(true)
     {
-        // Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_CLOCKWISE);
-        // _tx_thread_sleep(1000);
-        // Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_COUNTERCLOCKWISE);
-        // _tx_thread_sleep(1000);
-        // Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_COUNTERCLOCKWISE);
-        // _tx_thread_sleep(1000);
-        // Drive_CONT_Servo_Angle(&cServoInstance, 60, SERVO_CLOCKWISE);
-        // _tx_thread_sleep(1000);
-    tx_thread_sleep(THREAD_MAIN_DELAY_MS);
+        tx_thread_sleep(THREAD_MAIN_DELAY_MS);
     }
 }
 

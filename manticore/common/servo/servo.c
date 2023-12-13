@@ -13,14 +13,12 @@
 #define PID_Ki                          (0.000420f)
 #define PID_Kd                          (25.5f)
 #define OUTPUT_CAP                      (200.0)
-#define SERVO_SPEED_OFFSET              (30.0)
 #define SPEED_OFFSET                    (30.0)
-#define SERVO_MIN_TIM_US                (0)
 #define SERVO_MAX_TIM_US                (20000)
 #define ERROR_THRESHOLD                 (5.0f)
 #define STEADY_STATE_CNT_THRES          (300)
-#define INITIAL_ANGLE_OFFSET            (8)
 #define INTEGRAL_RESET_THRESHOLD        (15000)
+#define MAX_ANGLE_ERROR_THRESHOLD       (300.0)
 
 // #define DEBUG_PID
 
@@ -346,9 +344,6 @@ Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t ang
         }
     }
 
-    /* Check for edge cases */
-
-
     /* Change IC Timer to Capture Duty */
     HAL_TIM_IC_Stop(contServo->ICTimer, contServo->ICTimerChannel);
     Change_IC_IT_Edge(contServo->ICTimer, contServo->ICTimerChannel, TIM_INPUTCHANNELPOLARITY_BOTHEDGE);
@@ -375,6 +370,11 @@ Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t ang
 
         // P and I error calculation
         error = -(targetAngle - detectedAngle);
+
+        // Prevent Overspinning
+        if(error < -MAX_ANGLE_ERROR_THRESHOLD || error > MAX_ANGLE_ERROR_THRESHOLD){
+            break;
+        }
 
         //Check if we are within threshold
         if((error < ERROR_THRESHOLD) && (error > -ERROR_THRESHOLD)){
@@ -419,7 +419,7 @@ Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t ang
 
         // Drive Servo Motor
         __HAL_TIM_SET_COMPARE(contServo->contServoTimer, contServo->contServoChannel,
-                              map(1500 + output + offset, SERVO_MIN_TIM_US, SERVO_MAX_TIM_US, 0, contServo->contServoTimer->Init.Period));
+                              map(1500 + output + offset, 0, SERVO_MAX_TIM_US, 0, contServo->contServoTimer->Init.Period));
 
         // Prevent Integral explosion
         integralResetCnt++;
@@ -462,6 +462,10 @@ Servo_Error Drive_CONT_Servo_Angle(CONT_Servo_Instance_t* contServo, int16_t ang
     }
 
     return SERVO_OK;
+}
+
+float Get_Current_Angle(void){
+    return currAngle;
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
