@@ -9,7 +9,6 @@
 #include "stm32h5xx_hal.h"
 #include "tx_api.h"
 
-static DEPLOY_COMM currentCommand = IDLE;
 
 // Deploy Thread
 #define THREAD_DEPLOY_STACK_SIZE 2048
@@ -19,7 +18,6 @@ static const uint16_t THREAD_DEPLOY_DELAY_MS = 1;
 static const uint16_t SENSOR_NODE_EN_DELAY_MS = 5000;
 void thread_deploy(ULONG ctx);
 
-static bool activeGimbal = false;
 
 // Bay Orientation Thread
 #define THREAD_BAY_ORIENT_STACK_SIZE 1024
@@ -36,12 +34,18 @@ static uint8_t auThreadArmOrientStack[THREAD_ARM_ORIENT_STACK_SIZE];
 static const uint16_t THREAD_ARM_ORIENT_DELAY_MS = 50;
 void thread_arm_orient(ULONG ctx);
 
+// Control Variables
+static volatile DEPLOY_COMM currentCommand = IDLE;
+
+
 // Motor Variables
 extern TIM_HandleTypeDef hACT_Tim;
 static Actuator_Config_t actConfig;
 static Actuator_Instance_t actInstance;
 static const uint16_t LS_DELAY_MS = 5000;
 static const uint16_t DIRTBRAKE_DELAY_MS = 5000;
+
+static volatile bool activeGimbal = false;
 
 // Limit Switch Variables
 static volatile bool ArmRetractLS_Handled = false;
@@ -347,6 +351,7 @@ void thread_deploy(ULONG ctx)
 
                 case ACTIVE_GIMBAL_DISABLE:
                     activeGimbal = false;
+                    EStop();
                     break;
 
                 case ESTOP:
