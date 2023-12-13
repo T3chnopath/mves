@@ -106,6 +106,7 @@ void tx_application_define(void *first_unused_memory)
 void thread_main(ULONG ctx)
 {
     sMCAN_Message currMcanRxMessage;
+    bool commStatus;
 
     // Initialize BSP and App layer
     BSP_Init();
@@ -124,21 +125,20 @@ void thread_main(ULONG ctx)
             currMcanRxMessage = MCAN_Dequeue(&mcanQueue);
 
             // If first byte is 1, second byte is a deployment command. Check if Deploy isn't busy.
-            if ( currMcanRxMessage.mcanData[0] == 1 && !DeployCommBusy())
+            if ( currMcanRxMessage.mcanData[0] == 1 )
             {
-                DeployCommExe((DEPLOY_COMM) currMcanRxMessage.mcanData[1]);
+                // If cannot process, requeue
+                if( !DeployCommExe((DEPLOY_COMM) currMcanRxMessage.mcanData[1]) )
+                {
+                     MCAN_Enqueue(&mcanQueue, currMcanRxMessage);
+
+                }
             }
             
              // If sensor data, update IMU
             else if ( currMcanRxMessage.mcanID.MCAN_CAT == CAT_SENSOR_NODE )
             {
                 IMU_Update( currMcanRxMessage.mcanData );
-            }
-        
-            // If cannot process, requeue command
-            else
-            {
-                MCAN_Enqueue(&mcanQueue, currMcanRxMessage);
             }
         }
         tx_thread_sleep(THREAD_MAIN_DELAY_MS);

@@ -17,7 +17,22 @@ static TX_THREAD stThreadDeploy;
 static uint8_t auThreadDeployStack[THREAD_DEPLOY_STACK_SIZE];
 static const uint16_t THREAD_DEPLOY_DELAY_MS = 10;
 static const uint16_t SENSOR_NODE_EN_DELAY_MS = 5000;
+void thread_deploy(ULONG ctx);
+
+// Bay Orientation Thread
+#define THREAD_BAY_ORIENT_STACK_SIZE 1024
+static TX_THREAD stThreadBayOrient;
+static uint8_t auThreadBayOrientStack[THREAD_BAY_ORIENT_STACK_SIZE];
+static const uint16_t THREAD_BAY_ORIENT_DELAY_MS = 1;
+void thread_bay_orient(ULONG ctx);
 static const float GRAV_THRESHOLD = 0.1;
+
+// Arm Orientation Thread
+#define THREAD_ARM_ORIENT_STACK_SIZE 1024
+static TX_THREAD stThreadArmOrient;
+static uint8_t auThreadArmOrientStack[THREAD_ARM_ORIENT_STACK_SIZE];
+static const uint16_t THREAD_ARM_ORIENT_DELAY_MS = 1;
+void thread_arm_orient(ULONG ctx);
 
 // Motor Variables
 extern TIM_HandleTypeDef hACT_Tim;
@@ -30,9 +45,9 @@ static const uint16_t DIRTBRAKE_DELAY_MS = 5000;
 static volatile bool ArmRetractLS_Handled = false;
 static volatile bool ArmDeployLS_Handled  = false;
 
-static volatile bool newCommand = false;
-
-void thread_deploy(ULONG ctx);
+static volatile bool deployBusy = false;
+static volatile bool eStop = false;
+static const uint16_t ESTOP_DELAY = 3000;
 
 bool DeploymentInit(void)
 {
@@ -63,9 +78,29 @@ bool DeploymentInit(void)
                       0, // Time slicing unused if all threads have unique priorities     
                       TX_AUTO_START);
 
-    // Request sensor node IMU data
-    // tx_thread_sleep(SENSOR_NODE_EN_DELAY_MS);
-    // MCAN_TX(MCAN_DEBUG, SENSOR_DATA, DEV_MAIN_COMPUTE, (uint8_t[8]) {1, 0, 0, 0, 0, 0, 0, 0});
+    // Create Bay Orient Thread
+    tx_thread_create( &stThreadBayOrient, 
+                     "thread_bay_orient", 
+                      thread_bay_orient, 
+                      0, 
+                      auThreadBayOrientStack, 
+                      THREAD_BAY_ORIENT_STACK_SIZE, 
+                      3,
+                      3, 
+                      0, // Time slicing unused if all threads have unique priorities     
+                      TX_DONT_START);
+
+    // Create Arm Orient Thread
+    tx_thread_create( &stThreadArmOrient, 
+                     "thread_arm_orient", 
+                      thread_arm_orient, 
+                      0, 
+                      auThreadArmOrientStack, 
+                      THREAD_ARM_ORIENT_STACK_SIZE, 
+                      4,
+                      4, 
+                      0, // Time slicing unused if all threads have unique priorities     
+                      TX_DONT_START);
 
     return true;
 }
@@ -112,34 +147,8 @@ void BayStop(void)
     HAL_GPIO_WritePin(BAY_DC_Port2, BAY_DC_Pin2, RESET);
 }
 
-// BLOCKING
 void BayOrient(void)
 {
-    // Get initial direction
-    BAY_DIR initialDir = IMU_GetDirBias();
-    switch(initialDir)
-    {
-        case CW:
-            BayCCW();
-            break;
-        
-        case CCW:
-            BayCW();
-            break;
-    }
-
-    while(true)
-    {
-        // Check 1G in Z axis 
-        if(IMU_CheckZ(GRAV_THRESHOLD))
-            break;
-
-        // Detect change in direction
-        if(initialDir != IMU_GetDirBias())
-            break;
-    }
-
-    BayStop();
 }
 
 // Arm Commands
@@ -212,8 +221,13 @@ void ArmOrient(void)
 
 void EStop(void)
 {
+    eStop = true;
+
     ArmStop();
     BayStop();
+
+    tx_thread_sleep(ESTOP_DELAY);
+    eStop = false;
 }
 
 void FullDeploy(void)
@@ -231,11 +245,31 @@ void FullRetract(void)
     DirtbrakeRetract();
 }
 
+bool DeployCommExe(DEPLOY_COMM command)
+{
+    // Process estop
+    if(command == ESTOP)
+    {
+        EStop();
+        return true;
+    }
+    
+    // If busy, return
+    else if(deployBusy)
+    {
+        return false;
+    }
+    
+    // Set current command for module
+    currentCommand = command;
+    return true;
+}
+
 void thread_deploy(ULONG ctx)
 {
     while(true)
     {             
-        if( newCommand )
+        if( !deployBusy )
         {
             switch( currentCommand )
             {
@@ -258,7 +292,7 @@ void thread_deploy(ULONG ctx)
                     break;
             
                 case BAY_ORIENT:
-                    BayOrient();
+                    tx_thread_resume(&stThreadBayOrient);
                     break;
 
                 case BAY_STOP:
@@ -275,7 +309,7 @@ void thread_deploy(ULONG ctx)
                     break;
 
                 case ARM_ORIENT:
-                    ArmOrient();
+                    tx_thread_resume(&stThreadArmOrient);
                     break;
 
                 case ARM_STOP:
@@ -302,21 +336,52 @@ void thread_deploy(ULONG ctx)
                     break;
             }
 
-        newCommand = false;
+        deployBusy = false; 
         }
     
     tx_thread_sleep(THREAD_DEPLOY_DELAY_MS);
     }
 }
 
-void DeployCommExe(DEPLOY_COMM command)
+void thread_bay_orient(ULONG ctx)
 {
-    // Set current command for module
-    currentCommand = command;
-    newCommand = true;
+    while(true)
+    {
+    
+        // Get initial direction
+        BAY_DIR initialDir = IMU_GetDirBias();
+        switch(initialDir)
+        {
+            case CW:
+                BayCCW();
+                break;
+            
+            case CCW:
+                BayCW();
+                break;
+        }
+
+        // Terminate if Estop
+        while(!eStop)
+        {
+            tx_thread_sleep(THREAD_BAY_ORIENT_DELAY_MS);
+
+            // Terminate if 1G in Z axis
+            if(IMU_CheckZ(GRAV_THRESHOLD))
+                break;
+
+            // Terminate if change in direction
+            if(initialDir != IMU_GetDirBias())
+                break;
+        }
+
+        BayStop();
+
+        tx_thread_suspend(&stThreadBayOrient);
+    }
 }
 
-bool DeployCommBusy(void)
+void thread_arm_orient(ULONG ctx)
 {
-    return newCommand;
+    
 }

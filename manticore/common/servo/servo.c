@@ -23,8 +23,6 @@
 #define INITIAL_ANGLE_OFFSET            (8)
 #define INTEGRAL_RESET_THRESHOLD        (15000)
 
-#define DEBUG_PID
-
 //Local Scope Typedef
 typedef enum{
     CAPTURE_FREQUENCY,

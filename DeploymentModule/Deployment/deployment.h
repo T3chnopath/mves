@@ -47,7 +47,6 @@ void FullDeploy(void);
 void FullRetract(void);
 void EStop(void);
 
-void DeployCommExe(DEPLOY_COMM command);
-bool DeployCommBusy(void);
+bool DeployCommExe(DEPLOY_COMM command);
 
 #endif // __DEPLOYMENT_H typedef enum
